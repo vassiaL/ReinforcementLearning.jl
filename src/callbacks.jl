@@ -73,7 +73,7 @@ export ReduceEpsilonPerT
         t::Int64
         step::Float64
 
-Linearly decrease ϵ of an [`EpsilonGreedyPolicy`](@ref) from `initval` until 
+Linearly decrease ϵ of an [`EpsilonGreedyPolicy`](@ref) from `initval` until
 step `start` to `finalval` at step `stop`.
 
 Stepsize `step` = (finalval - initval)/(stop - start).
@@ -100,7 +100,7 @@ end
 @inline incrementepsilon(policy::NMarkovPolicy, val) = policy.policy.ϵ += val
 function callback!(c::LinearDecreaseEpsilon, rlsetup, sraw, a, r, done)
     c.t += 1
-    if c.t == 1 
+    if c.t == 1
         setepsilon(rlsetup.policy, c.initval)
     elseif c.t >= c.start && c.t < c.stop
         incrementepsilon(rlsetup.policy, c.step)
@@ -111,13 +111,13 @@ function callback!(c::LinearDecreaseEpsilon, rlsetup, sraw, a, r, done)
 end
 
 """
-    mutable struct Progress 
+    mutable struct Progress
         steps::Int64
         laststopcountervalue::Int64
 
 Show `steps` times progress information during learning.
 """
-mutable struct Progress 
+mutable struct Progress
     steps::Int64
     laststopcountervalue::Int64
 end
@@ -221,7 +221,7 @@ function callback!(c::EvaluateGreedy, rlsetup, sraw, a, r, done)
         rlsetup.fillbuffer = false
         c.rlsetupcallbacks = rlsetup.callbacks
         c.rlsetupstoppingcriterion = deepcopy(rlsetup.stoppingcriterion)
-        rlsetup.stoppingcriterion = typeof(rlsetup.stoppingcriterion).name.wrapper(typemax(Int)) 
+        rlsetup.stoppingcriterion = typeof(rlsetup.stoppingcriterion).name.wrapper(typemax(Int))
         rlsetup.callbacks = [c]
         c.rlsetuppolicyparameter = greedify!(rlsetup.policy)
     end
@@ -258,7 +258,7 @@ end
 export SaveLearner
 function callback!(c::SaveLearner, rlsetup, sraw, a, r, done)
     if step!(c.every, done)
-        save(c.filename * "_$(c.every.t).jld2", 
+        save(c.filename * "_$(c.every.t).jld2",
              Dict("learner" => rlsetup.learner))
     end
 end
@@ -299,7 +299,7 @@ export RecordAll
 """
     struct AllRewards
         rewards::Array{Float64, 1}
-    
+
 Records all rewards.
 """
 struct AllRewards
@@ -322,17 +322,17 @@ export AllRewards
 
 
 """
-    mutable struct Visualize 
+    mutable struct Visualize
         plot
         wait::Float64
 """
-mutable struct Visualize 
+mutable struct Visualize
     wait::Float64
 end
 """
     Visualize(; wait = .15)
 
-A callback to be used in an `RLSetup` to visualize an environment during 
+A callback to be used in an `RLSetup` to visualize an environment during
 running or learning.
 """
 Visualize(; wait = .15) = Visualize(wait)
@@ -342,3 +342,101 @@ function callback!(c::Visualize, rlsetup, s, a, r, done)
     sleep(c.wait)
 end
 plotenv(env) = warn("Visualization not implemented for environments of type $(typeof(env)).")
+
+
+"""
+Callback for Transition estimation (prioritizedsweeping or transitionlearners)
+"""
+struct RecordTransitionEstimation
+    Nsa_history::Array{Any, 1} # It is Any, so that it can be used both for TEstimateIntegrator (Int) and TEstimateLeakyIntegrator (Float64)
+    Ns1a0s0_history::Array{Array{Float64,1}, 1}
+    Ps1a0s0_history::Array{Array{Float64,1}, 1}
+end
+RecordTransitionEstimation() = RecordTransitionEstimation([], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
+function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
+
+    if in(:Testimate, fieldnames(typeof(rlsetup.learner)))
+        learnervariable = learner.Testimate
+    else
+        learnervariable = learner
+    end
+
+    a0 = rlsetup.buffer.actions[1]
+    s0 = rlsetup.buffer.states[1]
+    if in(:Ns1a0s0, fieldnames(typeof(rlsetup.learnervariable))) # TEstimateIntegrator TEstimateLeakyIntegrator
+        Nsprimea0s0 = zeros(rlsetup.learner.ns)
+        [ Nsprimea0s0[s] = rlsetup.learnervariable.Ns1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns if haskey(rlsetup.learnervariable.Ns1a0s0[s], (a0, s0)) ]
+        if !isassigned(p.Ns1a0s0_history) # If very first step
+            p.Ns1a0s0_history[1] = deepcopy(Nsprimea0s0)
+        else
+            push!(p.Ns1a0s0_history, deepcopy(Nsprimea0s0))
+        end
+        push!(p.Nsa_history, deepcopy(rlsetup.learnervariable.Nsa[a0, s0]))
+
+    elseif in(:Ps1a0s0, fieldnames(typeof(rlsetup.learnervariable))) # TEstimateParticleFilter
+        Psprimea0s0 = [rlsetup.learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
+        if !isassigned(p.Ps1a0s0_history) # If very first step
+            p.Ps1a0s0_history[1] = deepcopy(Psprimea0s0)
+        else
+            push!(p.Ps1a0s0_history, deepcopy(Psprimea0s0))
+        end
+    end
+end
+function reset!(p::RecordTransitionEstimation)
+    empty!(p.Nsa_history); empty!(p.Ns1a0s0_history); empty!(p.Ps1a0s0_history)
+end
+getvalue(p::RecordTransitionEstimation) = p
+export RecordTransitionEstimation
+
+
+"""
+Callback for Reward estimation (prioritizedsweeping or rewardslearners)
+"""
+struct RecordRewardEstimation
+    R_history::Array{Float64, 1}
+end
+RecordRewardEstimation() = RecordRewardEstimation(Float64[])
+function callback!(p::RecordRewardEstimation, rlsetup, sraw, a, r, done)
+    if in(:Restimate, fieldnames(typeof(rlsetup.learner)))
+        learnervariable = learner.Restimate
+    else
+        learnervariable = learner
+    end
+    if in(:R, fieldnames(typeof(rlsetup.learnervariable))) # REstimateIntegrator and REstimateLeakyIntegrator
+        push!(p.R_history, deepcopy(rlsetup.learnervariable.R[rlsetup.buffer.actions[1], rlsetup.buffer.states[1]]))
+    end
+end
+function reset!(p::RecordRewardEstimation)
+    empty!(p.R_history)
+end
+getvalue(p::RecordRewardEstimation) = p
+export RecordRewardsEstimation
+
+struct RecordEnvironmentTransitions
+    trans_probs_history::Array{Array{Float64,1}, 1}
+    switchflag::Array{Bool, 1}
+end
+RecordEnvironmentTransitions() = RecordEnvironmentTransitions(Array{Array{Float64,1}}(undef, 1), Bool[])
+function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
+
+    if in(:trans_probs, fieldnames(typeof(rlsetup.environment))) # MDP
+        envvariable = rlsetup.environment.trans_probs
+    elseif in(:mdp, fieldnames(typeof(rlsetup.environment))) # ChangeMDP
+        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
+        envvariable = rlsetup.environment.mdp.trans_probs
+    elseif in(:discretemaze, fieldnames(typeof(rlsetup.environment))) # ChangeDiscreteMaze
+        envvariable = rlsetup.environment.discretemaze.mdp.trans_probs
+    end
+    a0 = rlsetup.buffer.actions[1]
+    s0 = rlsetup.buffer.states[1]
+    if !isassigned(p.trans_probs_history) # If very first step
+        p.trans_probs_history[1] = deepcopy(envvariable[a0, s0])
+    else
+        push!(p.trans_probs_history, deepcopy(envvariable[a0, s0]))
+    end
+end
+function reset!(p::RecordEnvironmentTransitions)
+    empty!(p.trans_probs_history); empty!(p.switchflag)
+end
+getvalue(p::RecordEnvironmentTransitions) = p
+export RecordEnvironmentTransitions

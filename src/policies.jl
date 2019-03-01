@@ -15,7 +15,7 @@ were never chosen before, a uniform random novel action is returned.
 
 Returns a SoftmaxPolicy with default β = 1.
 """
-mutable struct SoftmaxPolicy{T} 
+mutable struct SoftmaxPolicy{T}
     β::Float64
     π::T
 end
@@ -60,7 +60,7 @@ end
     mutable struct EpsilonGreedyPolicy{kind}
         ϵ::Float64
 
-Chooses the action with the highest value with probability `1 - ϵ` and selects 
+Chooses the action with the highest value with probability `1 - ϵ` and selects
 an action uniformly random with probability `ϵ`.
 """
 mutable struct EpsilonGreedyPolicy{kind, Ta, Tf}
@@ -68,13 +68,13 @@ mutable struct EpsilonGreedyPolicy{kind, Ta, Tf}
     actionspace::Ta
     Q::Tf
 end
-function EpsilonGreedyPolicy(ϵ, actionspace::Ta, Q::Tf; 
+function EpsilonGreedyPolicy(ϵ, actionspace::Ta, Q::Tf;
                              kind = :veryoptimistic) where {Ta, Tf}
     EpsilonGreedyPolicy{kind, Ta, Tf}(ϵ, actionspace, Q)
 end
 export EpsilonGreedyPolicy
 function (p::EpsilonGreedyPolicy)(s)
-    if rand() < p.ϵ 
+    if rand() < p.ϵ
         rand(1:p.actionspace.n) # sample(actionspace) does not work currently because DQN expects actions in 1:n
     else
         samplegreedyaction(p, p.Q(s))
@@ -145,18 +145,18 @@ function defaultnmarkovpolicy(learner, buffer, π)
     else
         a = buffer.states.data
         data = getindex(a, map(x -> 1:x, size(a)[1:end-1])..., 1:learner.nmarkov)
-        NMarkovPolicy(learner.nmarkov, 
-                      π, 
+        NMarkovPolicy(learner.nmarkov,
+                      π,
                       ArrayCircularBuffer(data, learner.nmarkov, 0, 0, false))
     end
 end
 
 """
-    mutable struct ForcedPolicy 
+    mutable struct ForcedPolicy
         t::Int64
         actions::Array{Int64, 1}
 """
-mutable struct ForcedPolicy 
+mutable struct ForcedPolicy
     t::Int64
     actions::Array{Int64, 1}
 end
@@ -169,4 +169,13 @@ function (p::ForcedPolicy)(s)
         p.t += 1
     end
     p.actions[p.t]
+end
+
+
+mutable struct RandomPolicy{Ta}
+    actionspace::Ta
+end
+export RandomPolicy
+function (p::RandomPolicy)(s)
+    rand(1:p.actionspace.n) # sample(actionspace) does not work currently because DQN expects actions in 1:n
 end

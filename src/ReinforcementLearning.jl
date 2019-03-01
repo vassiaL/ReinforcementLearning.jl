@@ -19,6 +19,8 @@ function __init__()
     end
 end
 
+include(joinpath("learner", "transitionlearners.jl"))
+include(joinpath("learner", "rewardlearners.jl"))
 
 include("helper.jl")
 include("buffers.jl")
@@ -40,6 +42,5 @@ include("forced.jl")
 include("rlsetup.jl")
 include("learn.jl")
 include("compare.jl")
-    
-
+#
 end # module
