@@ -5,7 +5,7 @@
     if fillbuffer; pushreturn!(buffer, r, done) end
     if done
         s0, = reset!(environment)
-        s = preprocessstate(preprocessor, s0) 
+        s = preprocessstate(preprocessor, s0)
     end
     if fillbuffer; pushstate!(buffer, s) end
     a = policy(s)

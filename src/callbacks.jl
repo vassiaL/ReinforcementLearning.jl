@@ -348,33 +348,34 @@ plotenv(env) = warn("Visualization not implemented for environments of type $(ty
 Callback for Transition estimation (prioritizedsweeping or transitionlearners)
 """
 struct RecordTransitionEstimation
+    rewards::Array{Float64, 1}
     Nsa_history::Array{Any, 1} # It is Any, so that it can be used both for TEstimateIntegrator (Int) and TEstimateLeakyIntegrator (Float64)
     Ns1a0s0_history::Array{Array{Float64,1}, 1}
     Ps1a0s0_history::Array{Array{Float64,1}, 1}
 end
-RecordTransitionEstimation() = RecordTransitionEstimation([], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
+RecordTransitionEstimation() = RecordTransitionEstimation(Float64[], [], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
 function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
-
+    push!(p.rewards, r)
     if in(:Testimate, fieldnames(typeof(rlsetup.learner)))
-        learnervariable = learner.Testimate
+        learnervariable = rlsetup.learner.Testimate
     else
-        learnervariable = learner
+        learnervariable = rlsetup.learner
     end
 
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
-    if in(:Ns1a0s0, fieldnames(typeof(rlsetup.learnervariable))) # TEstimateIntegrator TEstimateLeakyIntegrator
+    if in(:Ns1a0s0, fieldnames(typeof(learnervariable))) # TEstimateIntegrator TEstimateLeakyIntegrator
         Nsprimea0s0 = zeros(rlsetup.learner.ns)
-        [ Nsprimea0s0[s] = rlsetup.learnervariable.Ns1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns if haskey(rlsetup.learnervariable.Ns1a0s0[s], (a0, s0)) ]
+        [ Nsprimea0s0[s] = learnervariable.Ns1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ns1a0s0[s], (a0, s0)) ]
         if !isassigned(p.Ns1a0s0_history) # If very first step
             p.Ns1a0s0_history[1] = deepcopy(Nsprimea0s0)
         else
             push!(p.Ns1a0s0_history, deepcopy(Nsprimea0s0))
         end
-        push!(p.Nsa_history, deepcopy(rlsetup.learnervariable.Nsa[a0, s0]))
+        push!(p.Nsa_history, deepcopy(learnervariable.Nsa[a0, s0]))
 
-    elseif in(:Ps1a0s0, fieldnames(typeof(rlsetup.learnervariable))) # TEstimateParticleFilter
-        Psprimea0s0 = [rlsetup.learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
+    elseif in(:Ps1a0s0, fieldnames(typeof(learnervariable))) # TEstimateParticleFilter
+        Psprimea0s0 = [learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
         if !isassigned(p.Ps1a0s0_history) # If very first step
             p.Ps1a0s0_history[1] = deepcopy(Psprimea0s0)
         else
@@ -398,20 +399,24 @@ end
 RecordRewardEstimation() = RecordRewardEstimation(Float64[])
 function callback!(p::RecordRewardEstimation, rlsetup, sraw, a, r, done)
     if in(:Restimate, fieldnames(typeof(rlsetup.learner)))
-        learnervariable = learner.Restimate
+        learnervariable = rlsetup.learner.Restimate
     else
-        learnervariable = learner
+        learnervariable = rlsetup.learner
     end
-    if in(:R, fieldnames(typeof(rlsetup.learnervariable))) # REstimateIntegrator and REstimateLeakyIntegrator
-        push!(p.R_history, deepcopy(rlsetup.learnervariable.R[rlsetup.buffer.actions[1], rlsetup.buffer.states[1]]))
+    if in(:R, fieldnames(typeof(learnervariable))) # REstimateIntegrator and REstimateLeakyIntegrator
+        push!(p.R_history, deepcopy(learnervariable.R[rlsetup.buffer.actions[1], rlsetup.buffer.states[1]]))
     end
 end
 function reset!(p::RecordRewardEstimation)
     empty!(p.R_history)
 end
 getvalue(p::RecordRewardEstimation) = p
-export RecordRewardsEstimation
+export RecordRewardEstimation
 
+
+"""
+Callback for environments' trans_probs and switches
+"""
 struct RecordEnvironmentTransitions
     trans_probs_history::Array{Array{Float64,1}, 1}
     switchflag::Array{Bool, 1}
