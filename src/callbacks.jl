@@ -348,14 +348,12 @@ plotenv(env) = warn("Visualization not implemented for environments of type $(ty
 Callback for Transition estimation (prioritizedsweeping or transitionlearners)
 """
 struct RecordTransitionEstimation
-    rewards::Array{Float64, 1}
     Nsa_history::Array{Any, 1} # It is Any, so that it can be used both for TEstimateIntegrator (Int) and TEstimateLeakyIntegrator (Float64)
     Ns1a0s0_history::Array{Array{Float64,1}, 1}
     Ps1a0s0_history::Array{Array{Float64,1}, 1}
 end
-RecordTransitionEstimation() = RecordTransitionEstimation(Float64[], [], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
+RecordTransitionEstimation() = RecordTransitionEstimation([], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
 function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
-    push!(p.rewards, r)
     if in(:Testimate, fieldnames(typeof(rlsetup.learner)))
         learnervariable = rlsetup.learner.Testimate
     else
@@ -384,7 +382,10 @@ function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
     end
 end
 function reset!(p::RecordTransitionEstimation)
-    empty!(p.Nsa_history); empty!(p.Ns1a0s0_history); empty!(p.Ps1a0s0_history)
+    if isassigned(p.Nsa_history); empty!(p.Nsa_history) end
+    if isassigned(p.Ns1a0s0_history); empty!(p.Ns1a0s0_history) end
+    if isassigned(p.Ps1a0s0_history); empty!(p.Ps1a0s0_history) end
+    # empty!(p.Nsa_history); empty!(p.Ns1a0s0_history); empty!(p.Ps1a0s0_history)
 end
 getvalue(p::RecordTransitionEstimation) = p
 export RecordTransitionEstimation
@@ -408,7 +409,8 @@ function callback!(p::RecordRewardEstimation, rlsetup, sraw, a, r, done)
     end
 end
 function reset!(p::RecordRewardEstimation)
-    empty!(p.R_history)
+    if isassigned(p.R_history); empty!(p.R_history) end
+    # empty!(p.R_history)
 end
 getvalue(p::RecordRewardEstimation) = p
 export RecordRewardEstimation
@@ -441,7 +443,8 @@ function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
     end
 end
 function reset!(p::RecordEnvironmentTransitions)
-    empty!(p.trans_probs_history); empty!(p.switchflag)
+    empty!(p.trans_probs_history)
+    if isassigned(p.switchflag); empty!(p.switchflag) end
 end
 getvalue(p::RecordEnvironmentTransitions) = p
 export RecordEnvironmentTransitions
