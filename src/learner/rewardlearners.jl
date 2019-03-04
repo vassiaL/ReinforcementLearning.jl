@@ -4,13 +4,13 @@ To be used as Restimate parameter of SmallBackups
 """
 
 struct REstimateIntegrator
-    ns::Int64
-    na::Int64
-    Nsa::Array{Int64, 2}
+    ns::Int
+    na::Int
+    Nsa::Array{Int, 2}
     R::Array{Float64, 2}
 end
 function REstimateIntegrator(; ns = 10, na = 4)
-    Nsa = zeros(Int64, na, ns)
+    Nsa = zeros(Int, na, ns)
     R = zeros(na, ns)
     REstimateIntegrator(ns, na, Nsa, R)
 end
@@ -27,8 +27,8 @@ updater!(::REstimateDummy, s0, a0, r) = nothing
 export REstimateDummy
 
 mutable struct REstimateLeakyIntegrator
-    ns::Int64
-    na::Int64
+    ns::Int
+    na::Int
     etaleak::Float64
     Nsa::Array{Float64, 2}
     Rsum::Array{Float64, 2}
@@ -61,8 +61,8 @@ function updater!(learnerR::REstimateLeakyIntegrator, s0, a0, r)
 end
 
 struct REstimateParticleFilter
-    ns::Int64
-    na::Int64
+    ns::Int
+    na::Int
     nparticles::Int # Per state and action
     Rsumparticles::Array{Array{Float64,1}, 3}
     R::Array{Float64, 2}
@@ -109,7 +109,6 @@ function defaultpolicy(learner::Union{REstimateDummy, REstimateIntegrator, REsti
                        buffer)
     RandomPolicy(actionspace)
 end
-
 
 function update!(learner::Union{REstimateDummy, REstimateIntegrator, REstimateLeakyIntegrator}, buffer)
     a0 = buffer.actions[1]

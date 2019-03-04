@@ -19,7 +19,11 @@ function __init__()
     end
 end
 
-include(joinpath("learner", "transitionlearners.jl"))
+# include(joinpath("learner", "transitionlearners.jl"))
+# include(joinpath("learner", "rewardlearners.jl"))
+include(joinpath("learner", "transitionlearner", "tintegrator.jl"))
+include(joinpath("learner", "transitionlearner", "tleakyintegrator.jl"))
+include(joinpath("learner", "transitionlearner", "tparticlefilter.jl"))
 include(joinpath("learner", "rewardlearners.jl"))
 
 include("helper.jl")

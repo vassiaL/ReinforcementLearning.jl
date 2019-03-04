@@ -1,19 +1,19 @@
 """
     mutable struct SmallBackups{TREstimate,TTEstimate} <: AbstractReinforcementLearner
-        ns::Int64 = 10
-        na::Int64 = 4
+        ns::Int = 10
+        na::Int = 4
         γ::Float64 = .9
         initvalue::Float64 = Inf64
-        maxcount::UInt64 = 3
+        maxcount::UInt = 3
         minpriority::Float64 = 1e-8
-        M::Int64 = 1
-        counter::Int64 = 0
+        M::Int = 1
+        counter::Int = 0
         Q::Array{Float64, 2} = zeros(na, ns) .+ initvalue
         V::Array{Float64, 1} = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue)
         U::Array{Float64, 1} = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue)
         Restimate::TREstimate
         Testimate::TTEstimate
-        queue::PriorityQueue = PriorityQueue(Base.Order.Reverse, zip(Int64[], Float64[]))
+        queue::PriorityQueue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[]))
 
 See [Harm Van Seijen, Rich Sutton ; Proceedings of the 30th International Conference on Machine Learning, PMLR 28(3):361-369, 2013.](http://proceedings.mlr.press/v28/vanseijen13.html)
 
@@ -22,14 +22,14 @@ the smallest priority still added to the queue.
 """
 
 mutable struct SmallBackups{TREstimate,TTEstimate}
-    ns::Int64
-    na::Int64
+    ns::Int
+    na::Int
     γ::Float64
     initvalue::Float64
-    maxcount::Int64 #UInt64
+    maxcount::Int #UInt64
     minpriority::Float64
-    M::Int64
-    counter::Int64
+    M::Int
+    counter::Int
     Q::Array{Float64, 2}
     V::Array{Float64, 1}
     U::Array{Float64, 1}
@@ -41,7 +41,7 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue), Restimatetype = REstimateIntegrator,
     Testimatetype = TEstimateIntegrator,
-    queue = PriorityQueue(Base.Order.Reverse, zip(Int64[], Float64[])),
+    queue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[])),
     nparticles = 6, stayprobability = .999, stochasticity = .01, etaleak = .9, seedparticlefilter = 3)
 
     if Testimatetype == TEstimateIntegrator
