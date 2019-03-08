@@ -153,7 +153,7 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     updatet!(learner.Testimate, s0, a0, s1)
     if typeof(learner.Restimate) == REstimateParticleFilter
-        updater!(learner.Restimate, s0, a0, r, learner.Testimate.particles, learner.Testimate.weights, learner.Testimate.alphas)
+        updater!(learner.Restimate, s0, a0, r, learner.Testimate.particlesswitch, learner.Testimate.weights, learner.Testimate.counts)
     else
         updater!(learner.Restimate, s0, a0, r)
     end

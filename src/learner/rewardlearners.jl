@@ -64,43 +64,36 @@ struct REstimateParticleFilter
     ns::Int
     na::Int
     nparticles::Int # Per state and action
-    Rsumparticles::Array{Array{Float64,1}, 3}
+    Rsumparticles::Array{Float64, 3}
     R::Array{Float64, 2}
 end
 function REstimateParticleFilter(; ns = 10, na = 4, nparticles = 6)
-    Rsumparticles = Array{Array{Float64,1}}(undef, na, ns, nparticles)
-    for i in 1:nparticles
-        for a in 1:na
-            for s in 1:ns
-                Rsumparticles[a, s, i] = [0.]
-            end
-        end
-    end
+    Rsumparticles = zeros(na, ns, nparticles)
     R = zeros(na, ns)
     REstimateParticleFilter(ns, na, nparticles, Rsumparticles, R)
 end
 export REstimateParticleFilter
 
-function updater!(learnerR::REstimateParticleFilter, s0, a0, r, particles, weights, alphas)
-    updateRsum!(learnerR, s0, a0, r, particles)
-    computeR!(learnerR, s0, a0, weights, alphas)
+function updater!(learnerR::REstimateParticleFilter, s0, a0, r, particlesswitch, weights, counts)
+    updateRsum!(learnerR, s0, a0, r, particlesswitch)
+    computeR!(learnerR, s0, a0, weights, counts)
 end
 
-function updateRsum!(learnerR::REstimateParticleFilter, s0, a0, r, particles)
+function updateRsum!(learnerR::REstimateParticleFilter, s0, a0, r, particlesswitch)
     for i in 1:learnerR.nparticles
-        if size(learnerR.Rsumparticles[a0, s0, i], 1) != particles[a0, s0, i][end] # If hidden state changed
-            push!(learnerR.Rsumparticles[a0, s0, i], 0.)
+        if particlesswitch[a0, s0, i] # if new hidden state
+            learnerR.Rsumparticles[a0, s0, i] =  0.
         end
-        learnerR.Rsumparticles[a0, s0, i][end] += r # Last hidden state. +1 for s'
+        learnerR.Rsumparticles[a0, s0, i] += r # Last hidden state. +1 for s'
     end
 end
 export updateRsum!
 
-function computeR!(learnerR::REstimateParticleFilter, s0, a0, weights, alphas)
-    lastweights = [weights[a0, s0, i][end] for i in 1:learnerR.nparticles]
-    lastcounts = [sum(alphas[a0, s0, i][end]) for i in 1:learnerR.nparticles]
-    lastRsum = [learnerR.Rsumparticles[a0, s0, i][end] for i in 1:learnerR.nparticles]
-    learnerR.R[a0, s0] = sum(lastweights .* (lastRsum ./ lastcounts))
+function computeR!(learnerR::REstimateParticleFilter, s0, a0, weights, counts)
+    # lastweights = [weights[a0, s0, i][end] for i in 1:learnerR.nparticles]
+    # lastcounts = [sum(counts[a0, s0, i][end]) for i in 1:learnerR.nparticles]
+    # lastRsum = [learnerR.Rsumparticles[a0, s0, i][end] for i in 1:learnerR.nparticles]
+    learnerR.R[a0, s0] = sum(weights[a0, s0, i] .* (learnerR.Rsumparticles[a0, s0, i] ./ sum(counts[a0, s0, i])))
 end
 export computeR!
 
