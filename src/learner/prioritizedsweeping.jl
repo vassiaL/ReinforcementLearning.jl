@@ -71,7 +71,6 @@ function defaultpolicy(learner::Union{SmallBackups, MonteCarlo}, actionspace,
                        buffer)
     EpsilonGreedyPolicy(.1, actionspace, s -> getvalue(learner.Q, s))
 end
-
 function addtoqueue!(q, s, p)
     if haskey(q, s)
         if q[s] > p; q[s] = p; end
@@ -104,7 +103,7 @@ function processqueueupdateq!(learner::Union{SmallBackups{REstimateDummy, TEstim
     end
 end
 function processqueueupdateq!(learner::SmallBackups{<:Union{REstimateIntegrator, REstimateLeakyIntegrator, REstimateParticleFilter}, TEstimateParticleFilter}, s1, ΔV)
-    # "Queue update Q for RIntegrator+TParticle or RLeaky+TParticle"
+    # Queue update Q for RIntegrator+TParticle or RLeaky+TParticle
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
             learner.Q[a0, s0] += learner.γ * ΔV * n
@@ -115,7 +114,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{REstimateIntegrator,
     end
 end
 function updateq!(learner::Union{SmallBackups{REstimateDummy, TEstimateIntegrator}, SmallBackups{REstimateLeakyIntegrator, TEstimateLeakyIntegrator}}, a0, s0, s1, r, done)
-    # "Either RDummy+Tintegrator or RLeaky+TLeaky"
+    # Either RDummy+Tintegrator or RLeaky+TLeaky
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
         if learner.Testimate.Nsa[a0, s0] >= learner.M
@@ -133,7 +132,7 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TEstimateIntegrato
 end
 """ Full backup """
 function updateq!(learner::SmallBackups{<:Union{REstimateIntegrator, REstimateLeakyIntegrator, REstimateParticleFilter}, TEstimateParticleFilter}, a0, s0, s1, r, done)
-    # "Full backup: RIntegrator+TParticle"
+    # Full backup: TParticle
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0]
@@ -145,7 +144,6 @@ function updateq!(learner::SmallBackups{<:Union{REstimateIntegrator, REstimateLe
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
     end
 end
-
 # function update!(learner::SmallBackups{TT, TR}, buffer) where {TT, TR}
 function update!(learner::SmallBackups, buffer)
     a0 = buffer.actions[1]
