@@ -448,3 +448,38 @@ function reset!(p::RecordEnvironmentTransitions)
 end
 getvalue(p::RecordEnvironmentTransitions) = p
 export RecordEnvironmentTransitions
+
+
+
+
+"""
+Record timepoints of s-a visits and organize them wrt environment switches
+"""
+mutable struct RecordSwitches
+    stateactionvisits::Array{Array{Array{Int,1}}, 2}
+    timestep::Int
+end
+RecordSwitches() = RecordSwitches(Array{Array{Array{Int,1}}, 2}(undef, 1, 1), 1)
+function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
+    if p.timestep == 1
+        p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef, rlsetup.learner.na, rlsetup.learner.ns)
+    end
+    a0 = rlsetup.buffer.actions[1]
+    s0 = rlsetup.buffer.states[1]
+
+    if !isassigned(p.stateactionvisits, LinearIndices(p.stateactionvisits)[a0, s0]) # If very first step
+        p.stateactionvisits[a0, s0] = [[p.timestep]]
+    elseif rlsetup.environment.switchflag # Switch! Push new array
+        push!(p.stateactionvisits[a0, s0], [p.timestep])
+    else # Push timepoint in current array
+        push!(p.stateactionvisits[a0, s0][end], p.timestep)
+    end
+
+    p.timestep += 1
+end
+function reset!(p::RecordSwitches)
+    if isassigned(p.stateactionvisits); empty!(p.switchflag) end
+    p.timestep = 1
+end
+getvalue(p::RecordSwitches) = p
+export RecordSwitches
