@@ -12,14 +12,12 @@ struct TEstimateSmile
     Ps1a0s0::Array{Dict{Tuple{Int, Int}, Float64}, 1}
     alphas::Array{Array{Float64,1}, 2}
     seed::Any
-    rng::MersenneTwister
 end
-function TEstimateSmile(;ns = 10, na = 4, m = .1, stochasticity = .01, seed = 3)
+function TEstimateSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     alphas = Array{Array{Float64,1}}(undef, na, ns)
     [alphas[a0, s0] = stochasticity .* ones(ns) for a0 in 1:na for s0 in 1:ns]
-    rng = MersenneTwister(seed)
-    TEstimateSmile(ns, na, m, stochasticity, Ps1a0s0, alphas, m, seed, rng)
+    TEstimateSmile(ns, na, m, stochasticity, Ps1a0s0, alphas, m)
 end
 export TEstimateSmile
 function updatet!(learnerT::TEstimateSmile, s0, a0, s1)
