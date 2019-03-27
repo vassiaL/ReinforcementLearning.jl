@@ -1,10 +1,10 @@
 using Distributions, SpecialFunctions, Random
 """
-TEstimateParticleFilter
+TParticleFilter
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
 """
-struct TEstimateParticleFilter
+struct TParticleFilter
     ns::Int
     na::Int
     nparticles::Int # Per state and action
@@ -18,17 +18,17 @@ struct TEstimateParticleFilter
     seed::Any
     rng::MersenneTwister
 end
-function TEstimateParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .999, stochasticity = .01, seed = 3)
+function TParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .999, stochasticity = .01, seed = 3)
     Neffthrs=nparticles/2.
     particlesswitch = Array{Bool, 3}(undef, na, ns, nparticles)
     weights = Array{Float64, 3}(undef, na, ns, nparticles)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     counts = Array{Array{Float64,1}}(undef, na, ns, nparticles)
     rng = MersenneTwister(seed)
-    TEstimateParticleFilter(ns, na, nparticles, Neffthrs, stayprobability, stochasticity, particlesswitch, weights, Ps1a0s0, counts, seed, rng)
+    TParticleFilter(ns, na, nparticles, Neffthrs, stayprobability, stochasticity, particlesswitch, weights, Ps1a0s0, counts, seed, rng)
 end
-export TEstimateParticleFilter
-function updatet!(learnerT::TEstimateParticleFilter, s0, a0, s1)
+export TParticleFilter
+function updatet!(learnerT::TParticleFilter, s0, a0, s1)
     if haskey(learnerT.Ps1a0s0[s1], (a0, s0))
 
         learnerT.particlesswitch[a0, s0, :] .= false
@@ -51,7 +51,7 @@ function updatet!(learnerT::TEstimateParticleFilter, s0, a0, s1)
     computePs1a0s0!(learnerT, s0, a0)
 end
 export updatet!
-function computeupdateterms(learnerT::TEstimateParticleFilter, s0, a0, s1)
+function computeupdateterms(learnerT::TParticleFilter, s0, a0, s1)
     stayterms = zeros(learnerT.nparticles)
     for i in 1:learnerT.nparticles # particlecounts_htminus1_ytminus1 = deepcopy(learnerT.counts[a0, s0, i])
         stayterms[i] = (learnerT.stochasticity + learnerT.counts[a0, s0, i][s1]) / sum(learnerT.stochasticity .+ learnerT.counts[a0, s0, i])
@@ -60,7 +60,7 @@ function computeupdateterms(learnerT::TEstimateParticleFilter, s0, a0, s1)
     stayterms, switchterm
 end
 export computeupdateterms!
-function getweights!(learnerT::TEstimateParticleFilter, s0, a0, stayterms, switchterm)
+function getweights!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
     for i in 1:learnerT.nparticles #firstratio = B(s + a(h_t-1)') / B(s + a(h_t-1)). secondratio = B(s + a(h_t=h_t-1 + 1)) / B(s)
         particleweightupdate = learnerT.stayprobability * stayterms[i] + (1. - learnerT.stayprobability) * switchterm
         learnerT.weights[a0, s0, i] *= particleweightupdate
@@ -68,7 +68,7 @@ function getweights!(learnerT::TEstimateParticleFilter, s0, a0, stayterms, switc
     learnerT.weights[a0, s0, :] /= sum(learnerT.weights[a0, s0, :]) # Normalize
 end
 export getweights!
-function sampleparticles!(learnerT::TEstimateParticleFilter, s0, a0, stayterms, switchterm)
+function sampleparticles!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
     for i in 1:learnerT.nparticles
         particlestayprobability = computeproposaldistribution(learnerT, stayterms[i], switchterm)
         r = rand(learnerT.rng) # Draw and possibly update
@@ -78,11 +78,11 @@ function sampleparticles!(learnerT::TEstimateParticleFilter, s0, a0, stayterms, 
     end
 end
 export sampleparticles!
-function computeproposaldistribution(learnerT::TEstimateParticleFilter, istayterm, switchterm)
+function computeproposaldistribution(learnerT::TParticleFilter, istayterm, switchterm)
     particlestayprobability = 1. /(1. + (((1. - learnerT.stayprobability) * switchterm) / (learnerT.stayprobability * istayterm)))
 end
 export computeproposaldistribution
-function updatecounts!(learnerT::TEstimateParticleFilter, s0, a0, s1)
+function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)
     for i in 1:learnerT.nparticles
         if learnerT.particlesswitch[a0, s0, i] # if new hidden state
             learnerT.counts[a0, s0, i] =  zeros(learnerT.ns)
@@ -92,7 +92,7 @@ function updatecounts!(learnerT::TEstimateParticleFilter, s0, a0, s1)
     end
 end
 export updatecounts!
-function resample!(learnerT::TEstimateParticleFilter, s0, a0)
+function resample!(learnerT::TParticleFilter, s0, a0)
     d = Categorical(learnerT.weights[a0, s0, :])
     tempcopyparticlesswitch = copy(learnerT.particlesswitch[a0, s0, :])
     tempcopycounts = deepcopy(learnerT.counts[a0, s0, :])
@@ -104,7 +104,7 @@ function resample!(learnerT::TEstimateParticleFilter, s0, a0)
     end
 end
 export resample!
-function computePs1a0s0!(learnerT::TEstimateParticleFilter, s0, a0)
+function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
     thetasweighted = zeros(learnerT.nparticles, learnerT.ns)
     for i in 1:learnerT.nparticles
         thetas = (learnerT.stochasticity .+ learnerT.counts[a0, s0, i])/sum(learnerT.stochasticity .+ learnerT.counts[a0, s0, i])
@@ -115,10 +115,10 @@ function computePs1a0s0!(learnerT::TEstimateParticleFilter, s0, a0)
         learnerT.Ps1a0s0[s][(a0, s0)] = expectedvaluethetas[s]
     end
 end
-function defaultpolicy(learner::Union{TEstimateIntegrator, TEstimateLeakyIntegrator, TEstimateParticleFilter, TEstimateSmile}, actionspace, buffer)
+function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile}, actionspace, buffer)
     RandomPolicy(actionspace)
 end
-function update!(learner::Union{TEstimateIntegrator, TEstimateLeakyIntegrator, TEstimateParticleFilter, TEstimateSmile}, buffer)
+function update!(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile}, buffer)
     a0 = buffer.actions[1]
     a1 = buffer.actions[2]
     s0 = buffer.states[1]

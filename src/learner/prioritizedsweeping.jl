@@ -39,29 +39,29 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
 end
 function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 3, minpriority = 1e-8, M = 1, counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
-    U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue), Restimatetype = REstimateIntegrator,
-    Testimatetype = TEstimateIntegrator,
+    U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue), Restimatetype = RIntegrator,
+    Testimatetype = TIntegrator,
     queue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[])),
     nparticles = 6, stayprobability = .999, stochasticity = .01, etaleak = .9, seedparticlefilter = 3)
 
-    if Testimatetype == TEstimateIntegrator
-        Testimate = TEstimateIntegrator(ns = ns, na = na)
-    elseif Testimatetype == TEstimateParticleFilter
-        Testimate = TEstimateParticleFilter(ns = ns, na = na, nparticles = nparticles, stayprobability = stayprobability, stochasticity = stochasticity, seed = seedparticlefilter)
-    elseif Testimatetype == TEstimateLeakyIntegrator
-        Testimate = TEstimateLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
+    if Testimatetype == TIntegrator
+        Testimate = TIntegrator(ns = ns, na = na)
+    elseif Testimatetype == TParticleFilter
+        Testimate = TParticleFilter(ns = ns, na = na, nparticles = nparticles, stayprobability = stayprobability, stochasticity = stochasticity, seed = seedparticlefilter)
+    elseif Testimatetype == TIntegrator
+        Testimate = TIntegrator(ns = ns, na = na, etaleak = etaleak)
     end
 
-    if Restimatetype == REstimateIntegrator
-        if Testimatetype == TEstimateIntegrator
+    if Restimatetype == RIntegrator
+        if Testimatetype == TIntegrator
             Restimate = REstimateDummy()
         else
-            Restimate = REstimateIntegrator(ns = ns, na = na)
+            Restimate = RIntegrator(ns = ns, na = na)
         end
-    elseif Restimatetype == REstimateLeakyIntegrator
-        Restimate = REstimateLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
-    elseif Restimatetype == REstimateParticleFilter
-        Restimate = REstimateParticleFilter(ns = ns, na = na, nparticles = nparticles)
+    elseif Restimatetype == RLeakyIntegrator
+        Restimate = RLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
+    elseif Restimatetype == RParticleFilter
+        Restimate = RParticleFilter(ns = ns, na = na, nparticles = nparticles)
     end
 
     SmallBackups(ns, na, γ, initvalue, maxcount, minpriority, M, counter, Q, V, U, Restimate, Testimate, queue)
@@ -89,7 +89,7 @@ function processqueue!(learner::SmallBackups)
     end
     learner.counter = 0
 end
-function processqueueupdateq!(learner::Union{SmallBackups{REstimateDummy, TEstimateIntegrator}, SmallBackups{REstimateLeakyIntegrator, TEstimateLeakyIntegrator}, SmallBackups{REstimateIntegrator, TEstimateLeakyIntegrator}}, s1, ΔV)
+function processqueueupdateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegrator, TIntegrator}, SmallBackups{RIntegrator, TIntegrator}}, s1, ΔV)
     # Queue update Q for RDummy+TIntegrator or RLeaky+TLeaky or RIntegrator+TLeaky
     if length(learner.Testimate.Ns1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ns1a0s0[s1]
@@ -102,7 +102,7 @@ function processqueueupdateq!(learner::Union{SmallBackups{REstimateDummy, TEstim
         end
     end
 end
-function processqueueupdateq!(learner::SmallBackups{<:Union{REstimateIntegrator, REstimateLeakyIntegrator, REstimateParticleFilter}, TEstimateParticleFilter}, s1, ΔV)
+function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator, RParticleFilter}, TParticleFilter}, s1, ΔV)
     # Queue update Q for RIntegrator+TParticle or RLeaky+TParticle
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
@@ -113,7 +113,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{REstimateIntegrator,
         end
     end
 end
-function updateq!(learner::Union{SmallBackups{REstimateDummy, TEstimateIntegrator}, SmallBackups{REstimateLeakyIntegrator, TEstimateLeakyIntegrator}}, a0, s0, s1, r, done)
+function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegrator, TIntegrator}}, a0, s0, s1, r, done)
     # Either RDummy+Tintegrator or RLeaky+TLeaky
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
@@ -131,7 +131,7 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TEstimateIntegrato
     end
 end
 """ Full backup """
-function updateq!(learner::SmallBackups{<:Union{REstimateIntegrator, REstimateLeakyIntegrator, REstimateParticleFilter}, TEstimateParticleFilter}, a0, s0, s1, r, done)
+function updateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator, RParticleFilter}, TParticleFilter}, a0, s0, s1, r, done)
     # Full backup: TParticle
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
@@ -152,7 +152,7 @@ function update!(learner::SmallBackups, buffer)
     s1 = buffer.states[2]
     r = buffer.rewards[1]
     updatet!(learner.Testimate, s0, a0, s1)
-    if typeof(learner.Restimate) == REstimateParticleFilter
+    if typeof(learner.Restimate) == RParticleFilter
         updater!(learner.Restimate, s0, a0, r, learner.Testimate.particlesswitch, learner.Testimate.weights, learner.Testimate.counts)
     else
         updater!(learner.Restimate, s0, a0, r)
