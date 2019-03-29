@@ -116,7 +116,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyI
         end
     end
 end
-""" Original small back up version """
+""" Original small backups version """
 function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegrator, TLeakyIntegrator}}, a0, s0, s1, r, done)
     # Either RDummy+Tintegrator or RLeaky+TLeaky
     if done
@@ -134,9 +134,8 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, Smal
         end
     end
 end
-""" Full backup: TParticle, TSmile """
-function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile}}, SmallBackups{RIntegrator, TLeakyIntegrator}}, a0, s0, s1, r, done)
-    println("Full back up")
+""" Full backup: TParticle, TSmile (that use probabilites (Ps1a0s0))"""
+function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile}}}, a0, s0, s1, r, done)
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
         learner.Q[a0, s0] = copy(learner.Restimate.R[a0, s0])
@@ -145,6 +144,19 @@ function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegra
         nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ps1a0s0[s],(a0,s0))]
         nextvs = [learner.U[s] for s in nextstates]
         nextps = [learner.Testimate.Ps1a0s0[s][a0, s0] for s in nextstates]
+        learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
+    end
+end
+""" Full backup: RIntegrator + TLeakyIntegrator that uses counts (Ns1a0s0) """
+function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator}, a0, s0, s1, r, done)
+    if done
+        if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
+        learner.Q[a0, s0] = copy(learner.Restimate.R[a0, s0])
+    else
+        if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
+        nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
+        nextvs = [learner.U[s] for s in nextstates]
+        nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
     end
 end
