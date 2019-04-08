@@ -83,13 +83,13 @@ end
 
 
 import Base.maximum, Base.isequal
-maximum(::EpsilonGreedyPolicy, v) = maximumbelowInf(v)
-maximum(::SoftmaxPolicy, v) = maximum(v)
+maximum(::EpsilonGreedyPolicy, v::AbstractArray) = maximumbelowInf(v)
+maximum(::SoftmaxPolicy, v::AbstractArray) = maximum(v)
 isequal(::EpsilonGreedyPolicy{:optimistic, Ta, Tf}, v1, v2) where {Ta, Tf} = v1 >= v2
-maximum(::EpsilonGreedyPolicy{:veryoptimistic, Ta, Tf}, v) where {Ta, Tf} = maximum(v)
+maximum(::EpsilonGreedyPolicy{:veryoptimistic, Ta, Tf}, v::AbstractArray) where {Ta, Tf} = maximum(v)
 isequal(::EpsilonGreedyPolicy, v1, v2) = v1 == v2
 isequal(::SoftmaxPolicy, v1, v2) = v1 == v2
-maximum(::Any, v) = maximum(v)
+maximum(::Any, v::AbstractArray) = maximum(v)
 isequal(::Any, v1, v2) = v1 == v2
 
 samplegreedyaction(p, a::Int) = a # needed by mdplearner

@@ -23,14 +23,16 @@ export TSmile
 function updatet!(learnerT::TSmile, s0, a0, s1)
 
     betas = learnerT.stochasticity .* ones(learnerT.ns)
-    betas[s1] += 1
+    betas[s1] += 1.
 
     Scc = KL(learnerT.alphas[a0, s0], betas)
+    @show Scc
     Bmax = KL(betas, learnerT.alphas[a0, s0])
     B = learnerT.m * Scc/(1. + learnerT.m * Scc) * Bmax
-    f = γ -> KL(γ .* betas .+ (1 - γ) .* learnerT.alphas[a0, s0], learnerT.alphas[a0, s0]) - B
-    γ0 = find_zero(f, (0, 1))
-    @. learnerT.alphas[a0, s0] = (1 - γ0) * learnerT.alphas[a0, s0] + γ0 * betas
+    @show B
+    γ0 = find_γ0(betas, learnerT.alphas[a0, s0], B)
+    @show γ0
+    @. learnerT.alphas[a0, s0] = (1. - γ0) * learnerT.alphas[a0, s0] + γ0 * betas
 
     computePs1a0s0!(learnerT, s0, a0)
 end
@@ -53,4 +55,19 @@ function computePs1a0s0!(learnerT::TSmile, s0, a0)
     for s in 1:learnerT.ns
         learnerT.Ps1a0s0[s][(a0, s0)] = learnerT.alphas[a0, s0][s] / sum(learnerT.alphas[a0, s0])
     end
+end
+function find_γ0(betas, alphas, B)
+    f = γ -> KL(γ .* betas .+ (1. - γ) .* alphas, alphas) - B
+    #γ0 = find_zero(f, (0., 1.))
+    
+    if abs(f(0.)) < 5*eps()
+        γ0 = 0.
+        println("HERE WE ARE! 0!")
+    elseif abs(f(1.)) < 5*eps()
+        γ0 = 1.
+        println("HERE WE ARE! 1!")
+    else
+        γ0 = find_zero(f, (0., 1.))
+    end
+    γ0
 end
