@@ -17,13 +17,13 @@ function TSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     alphas = Array{Array{Float64,1}}(undef, na, ns)
     [alphas[a0, s0] = stochasticity .* ones(ns) for a0 in 1:na for s0 in 1:ns]
+    # @show m
     TSmile(ns, na, m, stochasticity, Ps1a0s0, alphas)
 end
 export TSmile
 function updatet!(learnerT::TSmile, s0, a0, s1)
     betas = learnerT.stochasticity .* ones(learnerT.ns)
     betas[s1] += 1.
-    #@show learnerT.m
     Scc = KL(learnerT.alphas[a0, s0], betas)
     Bmax = KL(betas, learnerT.alphas[a0, s0])
     B = learnerT.m * Scc/(1. + learnerT.m * Scc) * Bmax

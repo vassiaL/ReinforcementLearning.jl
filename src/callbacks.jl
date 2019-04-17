@@ -429,6 +429,7 @@ function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
         push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
         envvariable = rlsetup.environment.mdp.trans_probs
     elseif in(:discretemaze, fieldnames(typeof(rlsetup.environment))) # ChangeDiscreteMaze
+        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
         envvariable = rlsetup.environment.discretemaze.mdp.trans_probs
     end
     a0 = rlsetup.buffer.actions[1]
