@@ -1,4 +1,4 @@
-using Distributions, SpecialFunctions, Random, Roots, LinearAlgebra
+using Distributions, SpecialFunctions, Roots, LinearAlgebra
 # import SpecialFunctions: lbeta
 """
 TSmile
@@ -17,7 +17,6 @@ function TSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     alphas = Array{Array{Float64,1}}(undef, na, ns)
     [alphas[a0, s0] = stochasticity .* ones(ns) for a0 in 1:na for s0 in 1:ns]
-    # @show m
     TSmile(ns, na, m, stochasticity, Ps1a0s0, alphas)
 end
 export TSmile
@@ -54,13 +53,10 @@ function computePs1a0s0!(learnerT::TSmile, s0, a0)
 end
 function find_γ0(betas, alphas, B)
     f = γ -> KL(γ .* betas .+ (1. - γ) .* alphas, alphas) - B
-    # γ0 = find_zero(f, (0., 1.))
     if abs(f(0.)) < 5*eps()
         γ0 = 0.
-        # println("HERE WE ARE! 0!")
     elseif abs(f(1.)) < 5*eps()
         γ0 = 1.
-        # println("HERE WE ARE! 1!")
     else
         γ0 = find_zero(f, (0., 1.))
     end

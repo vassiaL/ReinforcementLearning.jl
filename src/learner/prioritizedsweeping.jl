@@ -73,6 +73,7 @@ function defaultpolicy(learner::Union{SmallBackups, MonteCarlo}, actionspace,
                        buffer)
     EpsilonGreedyPolicy(.1, actionspace, s -> getvalue(learner.Q, s))
 end
+
 function addtoqueue!(q, s, p)
     if haskey(q, s)
         if q[s] > p; q[s] = p; end
