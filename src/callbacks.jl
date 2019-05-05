@@ -351,7 +351,9 @@ struct RecordTransitionEstimation
     Ns1a0s0_history::Array{Array{Float64,1}, 1}
     Ps1a0s0_history::Array{Array{Float64,1}, 1}
 end
-RecordTransitionEstimation() = RecordTransitionEstimation([], Array{Array{Float64,1}}(undef, 1), Array{Array{Float64,1}}(undef, 1))
+RecordTransitionEstimation() = RecordTransitionEstimation([],
+                                Array{Array{Float64,1}}(undef, 1),
+                                Array{Array{Float64,1}}(undef, 1))
 function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
     if in(:Testimate, fieldnames(typeof(rlsetup.learner)))
         learnervariable = rlsetup.learner.Testimate
@@ -363,7 +365,8 @@ function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
     s0 = rlsetup.buffer.states[1]
     if in(:Ns1a0s0, fieldnames(typeof(learnervariable))) # TIntegrator TIntegrator
         Nsprimea0s0 = zeros(rlsetup.learner.ns)
-        [ Nsprimea0s0[s] = learnervariable.Ns1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ns1a0s0[s], (a0, s0)) ]
+        [ Nsprimea0s0[s] = learnervariable.Ns1a0s0[s][a0, s0]
+        for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ns1a0s0[s], (a0, s0)) ]
         if !isassigned(p.Ns1a0s0_history) # If very first step
             p.Ns1a0s0_history[1] = deepcopy(Nsprimea0s0)
         else
@@ -372,7 +375,11 @@ function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
         push!(p.Nsa_history, deepcopy(learnervariable.Nsa[a0, s0]))
 
     elseif in(:Ps1a0s0, fieldnames(typeof(learnervariable))) # TParticleFilter
-        Psprimea0s0 = [learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
+        Psprimea0s0 = zeros(rlsetup.learner.ns)
+        [ Psprimea0s0[s] = learnervariable.Psprimea0s0[s][a0, s0]
+        for s in 1:rlsetup.learner.ns if haskey(learnervariable.Psprimea0s0[s], (a0, s0)) ]
+
+        # Psprimea0s0 = [learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
         if !isassigned(p.Ps1a0s0_history) # If very first step
             p.Ps1a0s0_history[1] = deepcopy(Psprimea0s0)
         else
@@ -403,7 +410,8 @@ function callback!(p::RecordRewardEstimation, rlsetup, sraw, a, r, done)
         learnervariable = rlsetup.learner
     end
     if in(:R, fieldnames(typeof(learnervariable))) # RIntegrator and RLeakyIntegrator
-        push!(p.R_history, deepcopy(learnervariable.R[rlsetup.buffer.actions[1], rlsetup.buffer.states[1]]))
+        push!(p.R_history, deepcopy(learnervariable.R[rlsetup.buffer.actions[1],
+            rlsetup.buffer.states[1]]))
     end
 end
 function reset!(p::RecordRewardEstimation)
@@ -457,7 +465,8 @@ end
 RecordSwitches() = RecordSwitches(Array{Array{Array{Int,1}}, 2}(undef, 1, 1), 1)
 function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     if p.timestep == 1
-        p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef, rlsetup.learner.na, rlsetup.learner.ns)
+        p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
+                                rlsetup.learner.na, rlsetup.learner.ns)
     end
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]

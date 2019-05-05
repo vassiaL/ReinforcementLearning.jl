@@ -2,6 +2,7 @@
     @unpack learner, policy, buffer, preprocessor, environment, fillbuffer = rlsetup
     s0, r0, done0 = interact!(environment, a)
     s, r, done = preprocess(preprocessor, s0, r0, done0)
+    # @show s, r, done
     if fillbuffer; pushreturn!(buffer, r, done) end
     if done
         s0, = reset!(environment)
@@ -11,6 +12,7 @@
     a = policy(s)
     if fillbuffer pushaction!(buffer, a) end
     s0, a, r, done
+    # @show s, a, r, done
 end
 @inline function firststateaction!(rlsetup)
     @unpack learner, policy, buffer, preprocessor, environment, fillbuffer = rlsetup

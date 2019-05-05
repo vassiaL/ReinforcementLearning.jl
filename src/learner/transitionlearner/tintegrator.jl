@@ -15,11 +15,13 @@ function TIntegrator(; ns = 10, na = 4)
     TIntegrator(ns, na, Nsa, Ns1a0s0)
 end
 export TIntegrator
-function updatet!(learnerT::TIntegrator, s0, a0, s1)
+function updatet!(learnerT::TIntegrator, s0, a0, s1, done)
     learnerT.Nsa[a0, s0] += 1
-    if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
-        learnerT.Ns1a0s0[s1][(a0, s0)] += 1
-    else
-        learnerT.Ns1a0s0[s1][(a0, s0)] = 1
+    if !done
+        if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
+            learnerT.Ns1a0s0[s1][(a0, s0)] += 1
+        else
+            learnerT.Ns1a0s0[s1][(a0, s0)] = 1
+        end
     end
 end

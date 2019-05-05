@@ -7,18 +7,22 @@ struct RIntegrator
     ns::Int
     na::Int
     Nsa::Array{Int, 2}
+    Rsum::Array{Float64, 2}
     R::Array{Float64, 2}
 end
 function RIntegrator(; ns = 10, na = 4)
     Nsa = zeros(Int, na, ns)
+    Rsum = zeros(na, ns)
     R = zeros(na, ns)
-    RIntegrator(ns, na, Nsa, R)
+    RIntegrator(ns, na, Nsa, Rsum, R)
 end
 export RIntegrator
 function updater!(learnerR::RIntegrator, s0, a0, r)
     learnerR.Nsa[a0, s0] += 1
-    learnerR.R[a0, s0] -= learnerR.R[a0, s0] / learnerR.Nsa[a0, s0]
-    learnerR.R[a0, s0] += r / learnerR.Nsa[a0, s0]
+    learnerR.Rsum[a0, s0] += r
+    learnerR.R[a0, s0] = learnerR.Rsum[a0, s0] / learnerR.Nsa[a0, s0]
+    # learnerR.R[a0, s0] -= learnerR.R[a0, s0] / learnerR.Nsa[a0, s0]
+    # learnerR.R[a0, s0] += r / learnerR.Nsa[a0, s0]
 end
 
 struct REstimateDummy end

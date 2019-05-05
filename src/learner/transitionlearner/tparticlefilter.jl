@@ -18,37 +18,62 @@ struct TParticleFilter
     seed::Any
     rng::MersenneTwister
 end
-function TParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .999, stochasticity = .01, seed = 3)
+function TParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .999,
+                        stochasticity = .01, seed = 3)
     Neffthrs=nparticles/2.
     particlesswitch = Array{Bool, 3}(undef, na, ns, nparticles)
     weights = Array{Float64, 3}(undef, na, ns, nparticles)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     counts = Array{Array{Float64,1}}(undef, na, ns, nparticles)
     rng = MersenneTwister(seed)
-    TParticleFilter(ns, na, nparticles, Neffthrs, stayprobability, stochasticity, particlesswitch, weights, Ps1a0s0, counts, seed, rng)
+    TParticleFilter(ns, na, nparticles, Neffthrs, stayprobability, stochasticity,
+                    particlesswitch, weights, Ps1a0s0, counts, seed, rng)
 end
 export TParticleFilter
-function updatet!(learnerT::TParticleFilter, s0, a0, s1)
-    if haskey(learnerT.Ps1a0s0[s1], (a0, s0))
+function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
+    # if haskey(learnerT.Ps1a0s0[s1], (a0, s0))
+    #     if !done
+    #         learnerT.particlesswitch[a0, s0, :] .= false
+    #         stayterms, switchterm = computeupdateterms(learnerT, s0, a0, s1)
+    #         getweights!(learnerT, s0, a0, stayterms, switchterm)
+    #         sampleparticles!(learnerT, s0, a0, stayterms, switchterm)
+    #         Neff = 1. /sum((@view learnerT.weights[a0, s0, :]) .^2) # Evaluate Neff = approx nr of particles that have a weight which meaningfully contributes to the probability distribution.
+    #         if Neff <= learnerT.Neffthrs # Resample!
+    #             resample!(learnerT, s0, a0)
+    #         end
+    #         updatecounts!(learnerT, s0, a0, s1)
+    #     end
+    # else # First visit
+    #     for i in 1:learnerT.nparticles
+    #         learnerT.particlesswitch[a0, s0, i] = false
+    #         learnerT.weights[a0, s0, i] = 1. /learnerT.nparticles
+    #         learnerT.counts[a0, s0, i] = zeros(learnerT.ns)
+    #         learnerT.counts[a0, s0, i][s1] += 1
+    #     end
+    # end
+    # computePs1a0s0!(learnerT, s0, a0)
+    if !done
+        if haskey(learnerT.Ps1a0s0[s1], (a0, s0))
+            learnerT.particlesswitch[a0, s0, :] .= false
+            stayterms, switchterm = computeupdateterms(learnerT, s0, a0, s1)
+            getweights!(learnerT, s0, a0, stayterms, switchterm)
+            sampleparticles!(learnerT, s0, a0, stayterms, switchterm)
+            Neff = 1. /sum((@view learnerT.weights[a0, s0, :]) .^2) # Evaluate Neff = approx nr of particles that have a weight which meaningfully contributes to the probability distribution.
+            if Neff <= learnerT.Neffthrs # Resample!
+                resample!(learnerT, s0, a0)
+            end
+            updatecounts!(learnerT, s0, a0, s1)
 
-        learnerT.particlesswitch[a0, s0, :] .= false
-        stayterms, switchterm = computeupdateterms(learnerT, s0, a0, s1)
-        getweights!(learnerT, s0, a0, stayterms, switchterm)
-        sampleparticles!(learnerT, s0, a0, stayterms, switchterm)
-        Neff = 1. /sum((@view learnerT.weights[a0, s0, :]) .^2) # Evaluate Neff = approx nr of particles that have a weight which meaningfully contributes to the probability distribution.
-        if Neff <= learnerT.Neffthrs # Resample!
-            resample!(learnerT, s0, a0)
+        else # First visit
+            for i in 1:learnerT.nparticles
+                learnerT.particlesswitch[a0, s0, i] = false
+                learnerT.weights[a0, s0, i] = 1. /learnerT.nparticles
+                learnerT.counts[a0, s0, i] = zeros(learnerT.ns)
+                learnerT.counts[a0, s0, i][s1] += 1
+            end
         end
-        updatecounts!(learnerT, s0, a0, s1)
-    else # First visit
-        for i in 1:learnerT.nparticles
-            learnerT.particlesswitch[a0, s0, i] = false
-            learnerT.weights[a0, s0, i] = 1. /learnerT.nparticles
-            learnerT.counts[a0, s0, i] = zeros(learnerT.ns)
-            learnerT.counts[a0, s0, i][s1] += 1
-        end
+        computePs1a0s0!(learnerT, s0, a0)
     end
-    computePs1a0s0!(learnerT, s0, a0)
 end
 export updatet!
 function computeupdateterms(learnerT::TParticleFilter, s0, a0, s1)
