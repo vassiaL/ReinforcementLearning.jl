@@ -348,12 +348,12 @@ Callback for Transition estimation (prioritizedsweeping or transitionlearners)
 """
 struct RecordTransitionEstimation
     Nsa_history::Array{Any, 1} # It is Any, so that it can be used both for TIntegrator (Int) and TIntegrator (Float64)
-    Ns1a0s0_history::Array{Array{Float64,1}, 1}
-    Ps1a0s0_history::Array{Array{Float64,1}, 1}
+    Ns1a0s0_history::Array{Array{Union{Float64, Missing},1}, 1}
+    Ps1a0s0_history::Array{Array{Union{Float64, Missing},1}, 1}
 end
 RecordTransitionEstimation() = RecordTransitionEstimation([],
-                                Array{Array{Float64,1}}(undef, 1),
-                                Array{Array{Float64,1}}(undef, 1))
+                                Array{Array{Union{Float64, Missing},1}}(undef, 1),
+                                Array{Array{Union{Float64, Missing},1}}(undef, 1))
 function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
     if in(:Testimate, fieldnames(typeof(rlsetup.learner)))
         learnervariable = rlsetup.learner.Testimate
@@ -363,22 +363,32 @@ function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
 
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
+
     if in(:Ns1a0s0, fieldnames(typeof(learnervariable))) # TIntegrator TIntegrator
-        Nsprimea0s0 = zeros(rlsetup.learner.ns)
-        [ Nsprimea0s0[s] = learnervariable.Ns1a0s0[s][a0, s0]
-        for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ns1a0s0[s], (a0, s0)) ]
+        if !done
+            Nsprimea0s0 = zeros(rlsetup.learner.ns)
+            [ Nsprimea0s0[s] = learnervariable.Ns1a0s0[s][a0, s0]
+            for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ns1a0s0[s], (a0, s0)) ]
+        else
+            Nsprimea0s0 = [missing]
+        end
+
         if !isassigned(p.Ns1a0s0_history) # If very first step
             p.Ns1a0s0_history[1] = deepcopy(Nsprimea0s0)
         else
             push!(p.Ns1a0s0_history, deepcopy(Nsprimea0s0))
         end
+
         push!(p.Nsa_history, deepcopy(learnervariable.Nsa[a0, s0]))
 
     elseif in(:Ps1a0s0, fieldnames(typeof(learnervariable))) # TParticleFilter
-        Psprimea0s0 = zeros(rlsetup.learner.ns)
-        [ Psprimea0s0[s] = learnervariable.Psprimea0s0[s][a0, s0]
-        for s in 1:rlsetup.learner.ns if haskey(learnervariable.Psprimea0s0[s], (a0, s0)) ]
-
+        if !done
+            Psprimea0s0 = zeros(rlsetup.learner.ns)
+            [ Psprimea0s0[s] = learnervariable.Ps1a0s0[s][a0, s0]
+            for s in 1:rlsetup.learner.ns if haskey(learnervariable.Ps1a0s0[s], (a0, s0)) ]
+        else
+            Psprimea0s0 = [missing]
+        end
         # Psprimea0s0 = [learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
         if !isassigned(p.Ps1a0s0_history) # If very first step
             p.Ps1a0s0_history[1] = deepcopy(Psprimea0s0)
@@ -434,12 +444,15 @@ function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
     if in(:trans_probs, fieldnames(typeof(rlsetup.environment))) # MDP
         envvariable = rlsetup.environment.trans_probs
     elseif in(:mdp, fieldnames(typeof(rlsetup.environment))) # ChangeMDP
-        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
         envvariable = rlsetup.environment.mdp.trans_probs
     elseif in(:discretemaze, fieldnames(typeof(rlsetup.environment))) # ChangeDiscreteMaze
-        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
         envvariable = rlsetup.environment.discretemaze.mdp.trans_probs
     end
+
+    if in(:switchflag, fieldnames(typeof(rlsetup.environment)))
+        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
+    end
+
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
     if !isassigned(p.trans_probs_history) # If very first step
@@ -463,24 +476,33 @@ mutable struct RecordSwitches
     timestep::Int
 end
 RecordSwitches() = RecordSwitches(Array{Array{Array{Int,1}}, 2}(undef, 1, 1), 1)
+
 function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
+    # @show p.timestep
     if p.timestep == 1
         p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
                                 rlsetup.learner.na, rlsetup.learner.ns)
+        for a in 1:rlsetup.learner.na
+            for s in 1:rlsetup.learner.ns
+                p.stateactionvisits[a, s] = [[]]
+            end
+        end
     end
+
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
-
-    if !isassigned(p.stateactionvisits, LinearIndices(p.stateactionvisits)[a0, s0]) # If very first step
-        p.stateactionvisits[a0, s0] = [[p.timestep]]
-    elseif rlsetup.environment.switchflag # Switch! Push new array
-        push!(p.stateactionvisits[a0, s0], [p.timestep])
-    else # Push timepoint in current array
-        push!(p.stateactionvisits[a0, s0][end], p.timestep)
+    # @show rlsetup.environment.switchflag
+    if rlsetup.environment.switchflag # Switch! Push new EMPTY array to all s-a pairs
+        for a in 1:rlsetup.learner.na
+            for s in 1:rlsetup.learner.ns
+                push!(p.stateactionvisits[a, s], [])
+            end
+        end
     end
-
+    push!(p.stateactionvisits[a0, s0][end], p.timestep)
     p.timestep += 1
 end
+
 function reset!(p::RecordSwitches)
     if isassigned(p.stateactionvisits); empty!(p.switchflag) end
     p.timestep = 1

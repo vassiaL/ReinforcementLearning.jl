@@ -56,7 +56,7 @@ function updater!(learnerR::RLeakyIntegrator, s0, a0, r)
 
     for s in 1:learnerR.ns
         for a in 1:learnerR.na
-            learnerR.Rsum[a, s] *= learnerR.etaleak * learnerR.Rsum[a, s] # Discount everything
+            learnerR.Rsum[a, s] *= learnerR.etaleak # Discount everything
         end
     end
     learnerR.Rsum[a0, s0] += learnerR.etaleak * r # Update observed
