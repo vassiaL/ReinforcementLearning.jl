@@ -9,7 +9,7 @@ struct TParticleFilter
     na::Int
     nparticles::Int # Per state and action
     Neffthrs::Float64
-    stayprobability::Float64
+    changeprobability::Float64
     stochasticity::Float64
     particlesswitch::Array{Bool, 3} # wannabe ns x na x nparticles.
     weights::Array{Float64, 3} # wannabe ns x na x nparticles.
@@ -18,7 +18,7 @@ struct TParticleFilter
     seed::Any
     rng::MersenneTwister
 end
-function TParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .999,
+function TParticleFilter(;ns = 10, na = 4, nparticles = 6, changeprobability = .01,
                         stochasticity = .01, seed = 3)
     Neffthrs=nparticles/2.
     particlesswitch = Array{Bool, 3}(undef, na, ns, nparticles)
@@ -26,7 +26,7 @@ function TParticleFilter(;ns = 10, na = 4, nparticles = 6, stayprobability = .99
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     counts = Array{Array{Float64,1}}(undef, na, ns, nparticles)
     rng = MersenneTwister(seed)
-    TParticleFilter(ns, na, nparticles, Neffthrs, stayprobability, stochasticity,
+    TParticleFilter(ns, na, nparticles, Neffthrs, changeprobability, stochasticity,
                     particlesswitch, weights, Ps1a0s0, counts, seed, rng)
 end
 export TParticleFilter
@@ -66,7 +66,7 @@ end
 export computeupdateterms!
 function getweights!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
     for i in 1:learnerT.nparticles #firstratio = B(s + a(h_t-1)') / B(s + a(h_t-1)). secondratio = B(s + a(h_t=h_t-1 + 1)) / B(s)
-        particleweightupdate = learnerT.stayprobability * stayterms[i] + (1. - learnerT.stayprobability) * switchterm
+        particleweightupdate = (1. - learnerT.changeprobability) * stayterms[i] + changeprobability * switchterm
         learnerT.weights[a0, s0, i] *= particleweightupdate
     end
     learnerT.weights[a0, s0, :] /= sum(learnerT.weights[a0, s0, :]) # Normalize
@@ -83,7 +83,7 @@ function sampleparticles!(learnerT::TParticleFilter, s0, a0, stayterms, switchte
 end
 export sampleparticles!
 function computeproposaldistribution(learnerT::TParticleFilter, istayterm, switchterm)
-    particlestayprobability = 1. /(1. + (((1. - learnerT.stayprobability) * switchterm) / (learnerT.stayprobability * istayterm)))
+    particlestayprobability = 1. /(1. + ((learnerT.changeprobability * switchterm) / ((1. - learnerT.changeprobability) * istayterm)))
 end
 export computeproposaldistribution
 function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)
@@ -97,7 +97,8 @@ function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)
 end
 export updatecounts!
 function resample!(learnerT::TParticleFilter, s0, a0)
-    d = Categorical(learnerT.weights[a0, s0, :])
+    tempcopyparticleweights = deepcopy(learnerT.weights[a0, s0, :])
+    d = Categorical(tempcopyparticleweights)
     tempcopyparticlesswitch = copy(learnerT.particlesswitch[a0, s0, :])
     tempcopycounts = deepcopy(learnerT.counts[a0, s0, :])
     for i in 1:learnerT.nparticles

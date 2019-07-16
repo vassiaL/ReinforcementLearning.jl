@@ -479,28 +479,47 @@ RecordSwitches() = RecordSwitches(Array{Array{Array{Int,1}}, 2}(undef, 1, 1), 1)
 
 function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     # @show p.timestep
+    # -------- ChMDP for changes of only one s-a pair (Option 2)
     if p.timestep == 1
         p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
-                                rlsetup.learner.na, rlsetup.learner.ns)
-        for a in 1:rlsetup.learner.na
-            for s in 1:rlsetup.learner.ns
-                p.stateactionvisits[a, s] = [[]]
-            end
-        end
+                                    rlsetup.learner.na, rlsetup.learner.ns)
     end
-
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
-    # @show rlsetup.environment.switchflag
-    if rlsetup.environment.switchflag # Switch! Push new EMPTY array to all s-a pairs
-        for a in 1:rlsetup.learner.na
-            for s in 1:rlsetup.learner.ns
-                push!(p.stateactionvisits[a, s], [])
-            end
-        end
+
+    if !isassigned(p.stateactionvisits, LinearIndices(p.stateactionvisits)[a0, s0]) # If very first step
+        p.stateactionvisits[a0, s0] = [[p.timestep]]
+    elseif rlsetup.environment.switchflag # Switch! Push new array
+        push!(p.stateactionvisits[a0, s0], [p.timestep])
+    else # Push timepoint in current array
+        push!(p.stateactionvisits[a0, s0][end], p.timestep)
     end
-    push!(p.stateactionvisits[a0, s0][end], p.timestep)
+
     p.timestep += 1
+
+    # -------- ChMDp when whole MDP is changing
+    # if p.timestep == 1
+    #     p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
+    #                             rlsetup.learner.na, rlsetup.learner.ns)
+    #     for a in 1:rlsetup.learner.na
+    #         for s in 1:rlsetup.learner.ns
+    #             p.stateactionvisits[a, s] = [[]]
+    #         end
+    #     end
+    # end
+    #
+    # a0 = rlsetup.buffer.actions[1]
+    # s0 = rlsetup.buffer.states[1]
+    # # @show rlsetup.environment.switchflag
+    # if rlsetup.environment.switchflag # Switch! Push new EMPTY array to all s-a pairs
+    #     for a in 1:rlsetup.learner.na
+    #         for s in 1:rlsetup.learner.ns
+    #             push!(p.stateactionvisits[a, s], [])
+    #         end
+    #     end
+    # end
+    # push!(p.stateactionvisits[a0, s0][end], p.timestep)
+    # p.timestep += 1
 end
 
 function reset!(p::RecordSwitches)

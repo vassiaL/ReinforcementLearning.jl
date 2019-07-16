@@ -43,16 +43,16 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue), Restimatetype = RIntegrator,
     Testimatetype = TIntegrator,
     queue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[])),
-    nparticles = 6, stayprobability = .999, stochasticity = .01, etaleak = .9,
-    seedparticlefilter = 3, msmile = 0.1)
+    nparticles = 6, changeprobability = .01, stochasticity = .01, etaleak = .9,
+    seedlearner = 3, msmile = 0.1)
 
     if Testimatetype == TIntegrator
         Testimate = TIntegrator(ns = ns, na = na)
     elseif Testimatetype == TParticleFilter
         Testimate = TParticleFilter(ns = ns, na = na, nparticles = nparticles,
-                                    stayprobability = stayprobability,
+                                    changeprobability = changeprobability,
                                     stochasticity = stochasticity,
-                                    seed = seedparticlefilter)
+                                    seed = seedlearner)
     elseif Testimatetype == TLeakyIntegrator
         Testimate = TLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
     elseif Testimatetype == TSmile
@@ -111,6 +111,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, REstima
                 p = abs(learner.V[s0] - learner.U[s0])
                 if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
             end
+            # @show learner.Q[a0, s0]
         end
     end
 end
@@ -157,7 +158,7 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
         nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
     end
-
+    # @show learner.Q[a0, s0]
 end
 """ Full backup: TParticle, TSmile (that use probabilites (Ps1a0s0))"""
 function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile}}},
