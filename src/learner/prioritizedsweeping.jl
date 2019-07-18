@@ -58,6 +58,9 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
     elseif Testimatetype == TSmile
         Testimate = TSmile(ns = ns, na = na, m = msmile,
                             stochasticity = stochasticity)
+    elseif Testimatetype == TVarSmile
+        Testimate = TVarSmile(ns = ns, na = na, m = msmile,
+                            stochasticity = stochasticity)
     end
 
     if Restimatetype == RIntegrator
@@ -116,7 +119,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, REstima
     end
 end
 """ For Testimate that uses probabilites (Ps1a0s0) """
-function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile}},
+function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile, TVarSmile}},
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
@@ -161,7 +164,7 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
     # @show learner.Q[a0, s0]
 end
 """ Full backup: TParticle, TSmile (that use probabilites (Ps1a0s0))"""
-function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile}}},
+function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile, TVarSmile}}},
                 a0, s0, s1, r, done)
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
@@ -174,7 +177,6 @@ function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegra
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
     end
 end
-
 # function update!(learner::SmallBackups{TT, TR}, buffer) where {TT, TR}
 function update!(learner::SmallBackups, buffer)
     a0 = buffer.actions[1]
