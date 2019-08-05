@@ -130,7 +130,7 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyI
         end
     end
 end
-""" Original small backups version : RDummy+Tintegrator or RLeaky+TLeaky"""
+""" Original small backups version : RDummy+TIntegrator or RLeaky+TLeaky"""
 function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegrator, TLeakyIntegrator}},
                 a0, s0, s1, r, done)
     if done
@@ -148,7 +148,7 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, Smal
         end
     end
 end
-""" Full backup: RIntegrator + TLeakyIntegrator that uses counts (Ns1a0s0) """
+""" Full backup: RIntegrator + TLeakyIntegrator (using counts Ns1a0s0) """
 function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
                 a0, s0, s1, r, done)
     if done
@@ -163,7 +163,7 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
     end
     # @show learner.Q[a0, s0]
 end
-""" Full backup: TParticle, TSmile (that use probabilites (Ps1a0s0))"""
+""" Full backup: TParticle, TSmile (using probabilites Ps1a0s0)"""
 function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile, TVarSmile}}},
                 a0, s0, s1, r, done)
     if done
@@ -186,11 +186,7 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     done = buffer.done[1]
     updatet!(learner.Testimate, s0, a0, s1, done)
-    # if typeof(learner.Restimate) == RParticleFilter
-    #     updater!(learner.Restimate, s0, a0, r, learner.Testimate.particlesswitch, learner.Testimate.weights, learner.Testimate.counts)
-    # else
     updater!(learner.Restimate, s0, a0, r)
-    # end
     updateq!(learner, a0, s0, s1, r, done)
     learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
     p = abs(learner.V[s0] - learner.U[s0])

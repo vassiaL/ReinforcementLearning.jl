@@ -47,18 +47,23 @@ end
 export RLeakyIntegrator
 """ X[t] = etaleak * X[t-1] + etaleak * I[.] """
 function updater!(learnerR::RLeakyIntegrator, s0, a0, r)
-    for s in 1:learnerR.ns
-        for a in 1:learnerR.na
-            learnerR.Nsa[a, s] *= learnerR.etaleak # Discount everything
-        end
-    end
+    # for s in 1:learnerR.ns
+    #     for a in 1:learnerR.na
+    #         learnerR.Nsa[a, s] *= learnerR.etaleak # Discount everything
+    #     end
+    # end
+    # learnerR.Nsa[a0, s0] += learnerR.etaleak # Update observed
+    # ------ VERSION 2: Leave rest s, a untouched
+    learnerR.Nsa[a0, s0] *= learnerR.etaleak # Discount
     learnerR.Nsa[a0, s0] += learnerR.etaleak # Update observed
-
-    for s in 1:learnerR.ns
-        for a in 1:learnerR.na
-            learnerR.Rsum[a, s] *= learnerR.etaleak # Discount everything
-        end
-    end
+    # for s in 1:learnerR.ns
+    #     for a in 1:learnerR.na
+    #         learnerR.Rsum[a, s] *= learnerR.etaleak # Discount everything
+    #     end
+    # end
+    # learnerR.Rsum[a0, s0] += learnerR.etaleak * r # Update observed
+    # ------ VERSION 2: Leave rest s, a untouched
+    learnerR.Rsum[a0, s0] *= learnerR.etaleak * r # Discount
     learnerR.Rsum[a0, s0] += learnerR.etaleak * r # Update observed
 
     learnerR.R = learnerR.Rsum ./ learnerR.Nsa
@@ -77,12 +82,10 @@ function RParticleFilter(; ns = 10, na = 4, nparticles = 6)
     RParticleFilter(ns, na, nparticles, Rsumparticles, R)
 end
 export RParticleFilter
-
 function updater!(learnerR::RParticleFilter, s0, a0, r, particlesswitch, weights, counts)
     updateRsum!(learnerR, s0, a0, r, particlesswitch)
     computeR!(learnerR, s0, a0, weights, counts)
 end
-
 function updateRsum!(learnerR::RParticleFilter, s0, a0, r, particlesswitch)
     for i in 1:learnerR.nparticles
         if particlesswitch[a0, s0, i] # if new hidden state
@@ -92,7 +95,6 @@ function updateRsum!(learnerR::RParticleFilter, s0, a0, r, particlesswitch)
     end
 end
 export updateRsum!
-
 function computeR!(learnerR::RParticleFilter, s0, a0, weights, counts)
     # lastweights = [weights[a0, s0, i][end] for i in 1:learnerR.nparticles]
     # lastcounts = [sum(counts[a0, s0, i][end]) for i in 1:learnerR.nparticles]
@@ -100,7 +102,6 @@ function computeR!(learnerR::RParticleFilter, s0, a0, weights, counts)
     learnerR.R[a0, s0] = sum(weights[a0, s0, i] .* (learnerR.Rsumparticles[a0, s0, i] ./ sum(counts[a0, s0, i])))
 end
 export computeR!
-
 
 function defaultpolicy(learner::Union{REstimateDummy, RIntegrator, RLeakyIntegrator}, actionspace,
                        buffer)
