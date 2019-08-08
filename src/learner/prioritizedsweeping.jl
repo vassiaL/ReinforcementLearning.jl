@@ -185,6 +185,8 @@ function update!(learner::SmallBackups, buffer)
     s1 = buffer.states[2]
     r = buffer.rewards[1]
     done = buffer.done[1]
+    # println("--------------")
+    # @show a0, s0, s1, done
     updatet!(learner.Testimate, s0, a0, s1, done)
     updater!(learner.Restimate, s0, a0, r)
     updateq!(learner, a0, s0, s1, r, done)
@@ -192,5 +194,8 @@ function update!(learner::SmallBackups, buffer)
     p = abs(learner.V[s0] - learner.U[s0])
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
     processqueue!(learner)
+    # for s in 1:size(learner.Q,2)
+    #      @show learner.Q[:, s]
+    # end
 end
 export update!

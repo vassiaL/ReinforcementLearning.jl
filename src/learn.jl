@@ -11,8 +11,9 @@
     if fillbuffer; pushstate!(buffer, s) end
     a = policy(s)
     if fillbuffer pushaction!(buffer, a) end
-    s0, a, r, done
+    # println("--------------")
     # @show s, a, r, done
+    s0, a, r, done
 end
 @inline function firststateaction!(rlsetup)
     @unpack learner, policy, buffer, preprocessor, environment, fillbuffer = rlsetup

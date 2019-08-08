@@ -389,7 +389,7 @@ function callback!(p::RecordTransitionEstimation, rlsetup, sraw, a, r, done)
         else
             Psprimea0s0 = [missing]
         end
-        # Psprimea0s0 = [learnervariable.Ps1a0s0[s][a0, s0] for s in 1:rlsetup.learner.ns]
+        # @show Psprimea0s0
         if !isassigned(p.Ps1a0s0_history) # If very first step
             p.Ps1a0s0_history[1] = deepcopy(Psprimea0s0)
         else
@@ -460,6 +460,7 @@ function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
     else
         push!(p.trans_probs_history, deepcopy(envvariable[a0, s0]))
     end
+    # @show envvariable[a0, s0]
 end
 function reset!(p::RecordEnvironmentTransitions)
     empty!(p.trans_probs_history)
