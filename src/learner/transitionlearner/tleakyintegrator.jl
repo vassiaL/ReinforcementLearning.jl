@@ -33,4 +33,28 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
         end
     end
 end
+
+## ----- Delete me: init with 0s
+# function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
+#     # ------ VERSION 2: Leave rest s0, a0 untouched
+#     learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
+#     learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
+#     if !done
+#         for s in 1:learnerT.ns # Initialize all transitions to 0
+#             if haskey(learnerT.Ns1a0s0[s], (a0, s0))
+#                 learnerT.Ns1a0s0[s][(a0, s0)] *= learnerT.etaleak # Discount all outgoing transitions
+#             else
+#                 learnerT.Ns1a0s0[s][(a0, s0)] = 0.
+#             end
+#         end
+#         learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
+#         # computePs1a0s0!(learnerT::TLeakyIntegrator, s0, a0)
+#     end
+# end
+# # function computePs1a0s0!(learnerT::TLeakyIntegrator, s0, a0)
+# #    for s in 1:learnerT.ns
+# #        learnerT.Ps1a0s0[s][(a0, s0)] = learnerT.Ns1a0s0[s][(a0, s0)] / learnerT.Nsa[a0, s0]
+# #        # @show learnerT.Ps1a0s0[s][(a0, s0)]
+# #    end
+# # end
 export updatet!

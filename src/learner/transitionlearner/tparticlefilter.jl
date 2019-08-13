@@ -112,6 +112,7 @@ function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
     expectedvaluethetas = sum(thetasweighted, dims = 1)
     for s in 1:learnerT.ns
         learnerT.Ps1a0s0[s][(a0, s0)] = copy(expectedvaluethetas[s])
+        @show learnerT.Ps1a0s0[s][(a0, s0)]
     end
 end
 function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile, TVarSmile},

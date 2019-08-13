@@ -28,7 +28,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
     initvalue::Float64
     maxcount::Int #UInt64
     minpriority::Float64
-    M::Int
+    M::Float64
     counter::Int
     Q::Array{Float64, 2}
     V::Array{Float64, 1}
@@ -37,8 +37,8 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
     Testimate::TTEstimate
     queue::PriorityQueue
 end
-function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 3,
-    minpriority = 1e-8, M = 1, counter = 0,
+function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 6,
+    minpriority = 1e-8, M = 1., counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue), Restimatetype = RIntegrator,
     Testimatetype = TIntegrator,
@@ -55,6 +55,7 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
                                     seed = seedlearner)
     elseif Testimatetype == TLeakyIntegrator
         Testimate = TLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
+        M = M > etaleak ? etaleak : M
     elseif Testimatetype == TSmile
         Testimate = TSmile(ns = ns, na = na, m = msmile,
                             stochasticity = stochasticity)
@@ -91,7 +92,6 @@ function addtoqueue!(q, s, p)
         enqueue!(q, s, p)
     end
 end
-
 function processqueue!(learner::SmallBackups)
     while length(learner.queue) > 0 && learner.counter < learner.maxcount
         learner.counter += 1
@@ -102,31 +102,33 @@ function processqueue!(learner::SmallBackups)
     end
     learner.counter = 0
 end
-""" For Testimate that uses counts (Ns1a0s0) """
-function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, REstimateDummy, RLeakyIntegrator}, <:Union{TIntegrator, TLeakyIntegrator}},
+ """ For Testimate that uses counts (Ns1a0s0) """
+function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, REstimateDummy, RLeakyIntegrator},
+                            <:Union{TIntegrator, TLeakyIntegrator}},
                             s1, ΔV)
-    # Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegrator, TLeakyIntegrator}, SmallBackups{RIntegrator, TIntegrator}}, s1, ΔV)
     if length(learner.Testimate.Ns1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ns1a0s0[s1]
-            if learner.Testimate.Nsa[a0, s0] >= learner.M
+            if n > 0. && learner.Testimate.Nsa[a0, s0] >= learner.M
                 learner.Q[a0, s0] += learner.γ * ΔV * n/learner.Testimate.Nsa[a0, s0]
                 learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
                 p = abs(learner.V[s0] - learner.U[s0])
                 if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
             end
-            # @show learner.Q[a0, s0]
         end
     end
 end
 """ For Testimate that uses probabilites (Ps1a0s0) """
-function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile, TVarSmile}},
+function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator},
+                            <:Union{TParticleFilter, TSmile, TVarSmile}},
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
-            learner.Q[a0, s0] += learner.γ * ΔV * n
-            learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
-            p = abs(learner.V[s0] - learner.U[s0])
-            if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
+            if learner.Testimate.Ps1a0s0[s1][a0, s0] > 0.
+                learner.Q[a0, s0] += learner.γ * ΔV * n
+                learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
+                p = abs(learner.V[s0] - learner.U[s0])
+                if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
+            end
         end
     end
 end
@@ -161,11 +163,11 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
         nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
         learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
     end
-    # @show learner.Q[a0, s0]
 end
 """ Full backup: TParticle, TSmile (using probabilites Ps1a0s0)"""
-function updateq!(learner::Union{SmallBackups{<:Union{RIntegrator, RLeakyIntegrator}, <:Union{TParticleFilter, TSmile, TVarSmile}}},
-                a0, s0, s1, r, done)
+function updateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator},
+                <:Union{TParticleFilter, TSmile, TVarSmile}},
+                 a0, s0, s1, r, done)
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
         learner.Q[a0, s0] = copy(learner.Restimate.R[a0, s0])
@@ -195,7 +197,7 @@ function update!(learner::SmallBackups, buffer)
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
     processqueue!(learner)
     # for s in 1:size(learner.Q,2)
-    #      @show learner.Q[:, s]
+    #        @show learner.Q[:, s]
     # end
 end
 export update!
