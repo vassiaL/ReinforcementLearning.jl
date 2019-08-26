@@ -21,7 +21,7 @@ See [Harm Van Seijen, Rich Sutton ; Proceedings of the 30th International Confer
 the smallest priority still added to the queue.
 """
 
-mutable struct SmallBackups{TREstimate,TTEstimate}
+mutable struct SmallBackups{TREstimate,TTEstimate,TEBonus}
     ns::Int
     na::Int
     γ::Float64
@@ -36,6 +36,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
     Restimate::TREstimate
     Testimate::TTEstimate
     queue::PriorityQueue
+    EBonus::TEBonus
 end
 function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 3,
     minpriority = 1e-8, M = 1., counter = 0,
@@ -44,7 +45,8 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
     Testimatetype = TIntegrator,
     queue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[])),
     nparticles = 6, changeprobability = .01, stochasticity = .01, etaleak = .9,
-    seedlearner = 3, msmile = 0.1)
+    seedlearner = 3, msmile = 0.1,
+    EBonustype = ExplorationBonusDummy, ebonusbackupstep = 30, ebonusbeta = 2.5)
 
     if Testimatetype == TIntegrator
         Testimate = TIntegrator(ns = ns, na = na)
@@ -76,8 +78,22 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 
     #     Restimate = RParticleFilter(ns = ns, na = na, nparticles = nparticles)
     end
 
+    if EBonustype == ExplorationBonusDummy
+        EBonus = ExplorationBonusDummy()
+    elseif EBonustype == ExplorationBonusLeaky
+        EBonus = ExplorationBonusLeaky(ns = ns, na = na, etaleak = etaleak,
+                                        backupstep = ebonusbackupstep,
+                                        beta = ebonusbeta)
+    elseif EBonustype == ExplorationBonusChangeModel
+        EBonus = ExplorationBonusChangeModel(ns = ns, na = na, etaleak = etaleak,
+                                        backupstep = ebonusbackupstep,
+                                        beta = ebonusbeta,
+                                        stochasticity = stochasticity,
+                                        changeprobability = changeprobability)
+    end
+
     SmallBackups(ns, na, γ, initvalue, maxcount, minpriority, M, counter,
-                Q, V, U, Restimate, Testimate, queue)
+                Q, V, U, Restimate, Testimate, queue, EBonus)
 end
 export SmallBackups
 function defaultpolicy(learner::Union{SmallBackups, MonteCarlo}, actionspace,

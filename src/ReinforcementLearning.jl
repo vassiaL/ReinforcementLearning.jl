@@ -48,4 +48,5 @@ include("rlsetup.jl")
 include("learn.jl")
 include("compare.jl")
 #
+include(joinpath("learner", "explorationbonus.jl"))
 end # module
