@@ -27,6 +27,8 @@ include(joinpath("learner", "transitionlearner", "tparticlefilter.jl"))
 
 include(joinpath("learner", "rewardlearners.jl"))
 
+include(joinpath("learner", "explorationbonus.jl"))
+
 include("helper.jl")
 include("buffers.jl")
 include("traces.jl")
@@ -40,7 +42,8 @@ include(joinpath("learner", "montecarlo.jl"))
 include(joinpath("learner", "mdplearner.jl"))
 include(joinpath("learner", "policygradientlearning.jl"))
 include(joinpath("learner", "tdlearning.jl"))
-include(joinpath("learner", "prioritizedsweeping.jl"))
+# include(joinpath("learner", "prioritizedsweeping.jl"))
+include(joinpath("learner", "prioritizedsweepingbonus.jl"))
 include(joinpath("learner", "deepactorcritic.jl"))
 include(joinpath("learner", "dqn.jl"))
 include("forced.jl")
@@ -48,5 +51,4 @@ include("rlsetup.jl")
 include("learn.jl")
 include("compare.jl")
 #
-include(joinpath("learner", "explorationbonus.jl"))
 end # module
