@@ -21,16 +21,15 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     # ------ VERSION 2: Leave rest s0, a0 untouched
     learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
     learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
-    if !done
-        nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s],(a0,s0))]
-        for sprime in nextstates
-            learnerT.Ns1a0s0[sprime][(a0, s0)] *= learnerT.etaleak # Discount all outgoing transitions
-        end
-        if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
-            learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
-        else
-            learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
-        end
+
+    nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s],(a0,s0))]
+    for sprime in nextstates
+        learnerT.Ns1a0s0[sprime][(a0, s0)] *= learnerT.etaleak # Discount all outgoing transitions
+    end
+    if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
+        learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
+    else
+        learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
     end
 end
 

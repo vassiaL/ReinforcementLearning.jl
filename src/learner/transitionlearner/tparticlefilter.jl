@@ -34,7 +34,7 @@ function TParticleFilter(;ns = 10, na = 4, nparticles = 6, changeprobability = .
 end
 export TParticleFilter
 function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
-    if !done
+    # if !done
         learnerT.particlesswitch[a0, s0, :] .= false
         stayterms = computestayterms(learnerT, s0, a0, s1)
         getweights!(learnerT, s0, a0, stayterms, 1. / learnerT.ns)
@@ -43,7 +43,7 @@ function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
         if Neff <= learnerT.Neffthrs; resample!(learnerT, s0, a0); end
         updatecounts!(learnerT, s0, a0, s1)
         computePs1a0s0!(learnerT, s0, a0)
-    end
+    # end
 end
 export updatet!
 function computestayterms(learnerT::TParticleFilter, s0, a0, s1)

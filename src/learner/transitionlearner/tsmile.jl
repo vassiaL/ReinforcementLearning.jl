@@ -21,17 +21,16 @@ function TSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
 end
 export TSmile
 function updatet!(learnerT::TSmile, s0, a0, s1, done)
-    if !done
-        betas = learnerT.stochasticity .* ones(learnerT.ns)
-        betas[s1] += 1.
-        Scc = KL(learnerT.alphas[a0, s0], betas)
-        # Bmax = KL(betas, learnerT.alphas[a0, s0])
-        # B = learnerT.m * Scc/(1. + learnerT.m * Scc) * Bmax
-        γ0 = learnerT.m * Scc/(1. + learnerT.m * Scc)
-        #γ0 = find_γ0(betas, learnerT.alphas[a0, s0], B)
-        @. learnerT.alphas[a0, s0] = (1. - γ0) .* learnerT.alphas[a0, s0] + γ0 .* betas
-        computePs1a0s0!(learnerT, s0, a0)
-    end
+
+    betas = learnerT.stochasticity .* ones(learnerT.ns)
+    betas[s1] += 1.
+    Scc = KL(learnerT.alphas[a0, s0], betas)
+    # Bmax = KL(betas, learnerT.alphas[a0, s0])
+    # B = learnerT.m * Scc/(1. + learnerT.m * Scc) * Bmax
+    γ0 = learnerT.m * Scc/(1. + learnerT.m * Scc)
+    #γ0 = find_γ0(betas, learnerT.alphas[a0, s0], B)
+    @. learnerT.alphas[a0, s0] = (1. - γ0) .* learnerT.alphas[a0, s0] + γ0 .* betas
+    computePs1a0s0!(learnerT, s0, a0)
 end
 export updatet!
 function KL(α1, α2)

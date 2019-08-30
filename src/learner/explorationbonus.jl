@@ -39,8 +39,10 @@ end
 function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter,
                         s0, a0, s1, done)
     bonus.backupcounter += 1
-    @show (s0, a0, s1, done)
+    @show bonus.backupcounter
+    @show (a0, s0, s1, done)
     leakbonus!(bonus)
+    # If it's not terminal: get particle filter counts
     if !done
         countsweighted = getcountsweighted(learnerT, a0, s0) # Get a0, s0 counts
         @show countsweighted
@@ -48,7 +50,9 @@ function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter,
     else
         bonus.α0[a0, s0] += 1.
     end
+    @show bonus.α0
     bonus.rewardbonus = computeRewardBonus!(bonus)
+    @show bonus.rewardbonus
 end
 function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TVarSmile,
                                 s0, a0, s1, done)

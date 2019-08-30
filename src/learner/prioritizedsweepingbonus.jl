@@ -235,17 +235,18 @@ function backup!(learner::SmallBackups{TR, TT, ExplorationBonusLeaky} where {TR,
     if learner.EBonus.backupcounter == learner.EBonus.backupstep
         updateqwithbonus!(learner)
         processqueue!(learner)
-        @show learner.Q
         learner.EBonus.Qaugmented = copy(learner.Q)
-        @show learner.EBonus.Qaugmented
         learner.EBonus.backupcounter = 0
     else
         processqueue!(learner)
         addbonus!(learner)
     end
+    @show learner.Q
+    @show learner.EBonus.Qaugmented
 end
 function backup!(learner::SmallBackups{TR, TT, ExplorationBonusDummy} where {TR, TT})
         processqueue!(learner)
+        @show learner.Q
 end
 # function update!(learner::SmallBackups{TT, TR}, buffer) where {TT, TR}
 function update!(learner::SmallBackups, buffer)
@@ -255,8 +256,8 @@ function update!(learner::SmallBackups, buffer)
     s1 = buffer.states[2]
     r = buffer.rewards[1]
     done = buffer.done[1]
-    # println("--------------")
-    # @show a0, s0, s1, done
+    println("--------------")
+    @show a0, s0, s1, a1, r, done
     updatet!(learner.Testimate, s0, a0, s1, done)
     updater!(learner.Restimate, s0, a0, r)
     updatebonus!(learner.EBonus, learner.Testimate, s0, a0, s1, done)

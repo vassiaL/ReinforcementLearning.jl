@@ -26,17 +26,15 @@ export TLeakyIntegrator
 """ X[t] = etaleak * X[t-1] + etaleak * I[.] """
 function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     # ------ VERSION 1: Leak the whole transition matrix
-    if !done
-        for s in 1:learnerT.ns
-            for a in 1:learnerT.na
-                learnerT.Nsa[a, s] *= learnerT.etaleak # Discount everything
-                for sprime in 1:learnerT.ns
-                    learnerT.Ns1a0s0[sprime][(a, s)] *= learnerT.etaleak # Discount everything
-                end
+    for s in 1:learnerT.ns
+        for a in 1:learnerT.na
+            learnerT.Nsa[a, s] *= learnerT.etaleak # Discount everything
+            for sprime in 1:learnerT.ns
+                learnerT.Ns1a0s0[sprime][(a, s)] *= learnerT.etaleak # Discount everything
             end
         end
-        learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
-        learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed transition
     end
+    learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
+    learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed transition
 end
 export updatet!

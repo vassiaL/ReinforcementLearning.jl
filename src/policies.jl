@@ -77,6 +77,8 @@ function (p::EpsilonGreedyPolicy)(s)
     if rand() < p.ϵ
         rand(1:p.actionspace.n) # sample(actionspace) does not work currently because DQN expects actions in 1:n
     else
+        println("Policy Q vals:")
+        @show p.Q(s)
         samplegreedyaction(p, p.Q(s))
     end
 end

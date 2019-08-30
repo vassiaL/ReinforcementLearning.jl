@@ -10,19 +10,22 @@ struct Buffer{Ts, Ta}
     actions::CircularBuffer{Ta}
     rewards::CircularBuffer{Float64}
     done::CircularBuffer{Bool}
+    terminalstates::CircularBuffer{Ts}
 end
 """
-    Buffer(; statetype = Int64, actiontype = Int64, 
+    Buffer(; statetype = Int64, actiontype = Int64,
              capacity = 2, capacitystates = capacity,
              capacityrewards = capacity - 1)
 """
-function Buffer(; statetype = Int64, actiontype = Int64, 
+function Buffer(; statetype = Int64, actiontype = Int64,
                   capacity = 2, capacitystates = capacity,
-                  capacityrewards = capacity - 1)
+                  capacityrewards = capacity - 1,
+                  capacityterminalstates = capacity - 1)
     Buffer(CircularBuffer{statetype}(capacitystates),
            CircularBuffer{actiontype}(capacitystates),
            CircularBuffer{Float64}(capacityrewards),
-           CircularBuffer{Bool}(capacityrewards))
+           CircularBuffer{Bool}(capacityrewards),
+           CircularBuffer{statetype}(capacityterminalstates))
 end
 function pushstateaction!(b, s, a)
     pushstate!(b, s)
@@ -34,7 +37,7 @@ function pushreturn!(b, r, done)
     push!(b.rewards, r)
     push!(b.done, done)
 end
-
+pushterminalstates!(b, s) = push!(b.terminalstates, deepcopy(s))
 """
     struct EpisodeBuffer{Ts, Ta}
         states::Array{Ts, 1}
@@ -49,10 +52,10 @@ struct EpisodeBuffer{Ts, Ta}
     done::Array{Bool, 1}
 end
 """
-    EpisodeBuffer(; statetype = Int64, actiontype = Int64) = 
+    EpisodeBuffer(; statetype = Int64, actiontype = Int64) =
         EpisodeBuffer(statetype[], actiontype[], Float64[], Bool[])
 """
-EpisodeBuffer(; statetype = Int64, actiontype = Int64) = 
+EpisodeBuffer(; statetype = Int64, actiontype = Int64) =
     EpisodeBuffer(statetype[], actiontype[], Float64[], Bool[])
 function pushreturn!(b::EpisodeBuffer, r, done)
     if length(b.done) > 0 && b.done[end]
@@ -84,7 +87,7 @@ end
     ArrayCircularBuffer(arraytype, datatype, elemshape, capacity)
 """
 function ArrayCircularBuffer(arraytype, datatype, elemshape, capacity)
-    ArrayCircularBuffer(arraytype(zeros(datatype, 
+    ArrayCircularBuffer(arraytype(zeros(datatype,
                                         convert(Dims, (elemshape..., capacity)))),
                         capacity, 0, 0, false)
 end
@@ -96,8 +99,8 @@ for N in 2:5
             setindex!(a.data, x, a.counter*n + 1:(a.counter + 1)*n)
             a.counter += 1
             a.counter = a.counter % a.capacity
-            if a.full 
-                a.start += 1 
+            if a.full
+                a.start += 1
                 a.start = a.start % a.capacity
             end
             if a.counter == 0 a.full = true end
@@ -144,8 +147,8 @@ struct ArrayStateBuffer{Ts, Ta}
     done::CircularBuffer{Bool}
 end
 """
-    ArrayStateBuffer(; arraytype = Array, datatype = Float64, 
-                       elemshape = (1), actiontype = Int64, 
+    ArrayStateBuffer(; arraytype = Array, datatype = Float64,
+                       elemshape = (1), actiontype = Int64,
                        capacity = 2, capacitystates = capacity,
                        capacityrewards = capacity - 1)
 
@@ -153,13 +156,13 @@ An `ArrayStateBuffer` is similar to a [`Buffer`](@ref) but the states are stored
 in a prealocated array of size `(elemshape..., capacity)`. `K` consecutive
 states at position `i` in the state buffer can can efficiently be retrieved with
 `nmarkovview(buffer.states, i, K)` or `nmarkovgetindex(buffer.states, i, K)`.
-See the implementation of DQN for an example. 
+See the implementation of DQN for an example.
 """
-function ArrayStateBuffer(; arraytype = Array, datatype = Float64, 
-                            elemshape = (1), actiontype = Int64, 
+function ArrayStateBuffer(; arraytype = Array, datatype = Float64,
+                            elemshape = (1), actiontype = Int64,
                             capacity = 2, capacitystates = capacity,
                             capacityrewards = capacity - 1)
-    ArrayStateBuffer(ArrayCircularBuffer(arraytype, datatype, elemshape, 
+    ArrayStateBuffer(ArrayCircularBuffer(arraytype, datatype, elemshape,
                                          capacitystates),
                      CircularBuffer{actiontype}(capacitystates),
                      CircularBuffer{Float64}(capacityrewards),

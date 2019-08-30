@@ -21,16 +21,14 @@ function TVarSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
 end
 export TVarSmile
 function updatet!(learnerT::TVarSmile, s0, a0, s1, done)
-    if !done
-        alpha0 = learnerT.stochasticity .* ones(learnerT.ns)
-        Sgm = calcSgm(learnerT.alphas[a0, s0], alpha0, s1)
-        γ0 = learnerT.m * Sgm/(1. + learnerT.m * Sgm)
-        betas = zeros(learnerT.ns)
-        betas[s1] += 1.
-        @. learnerT.alphas[a0, s0] = (1. - γ0) .* learnerT.alphas[a0, s0] +
-                                            γ0 .* alpha0 .+ betas
-        computePs1a0s0!(learnerT, s0, a0)
-    end
+    alpha0 = learnerT.stochasticity .* ones(learnerT.ns)
+    Sgm = calcSgm(learnerT.alphas[a0, s0], alpha0, s1)
+    γ0 = learnerT.m * Sgm/(1. + learnerT.m * Sgm)
+    betas = zeros(learnerT.ns)
+    betas[s1] += 1.
+    @. learnerT.alphas[a0, s0] = (1. - γ0) .* learnerT.alphas[a0, s0] +
+                                        γ0 .* alpha0 .+ betas
+    computePs1a0s0!(learnerT, s0, a0)
 end
 export updatet!
 function calcSgm(αn, α0, s1)

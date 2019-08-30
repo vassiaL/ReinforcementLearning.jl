@@ -41,4 +41,3 @@ function defaultbuffer(learner, env, preprocessor)
         Buffer(capacity = capacity, statetype = statetype)
     end
 end
-

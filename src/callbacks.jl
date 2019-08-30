@@ -436,9 +436,11 @@ Callback for environments' trans_probs and switches
 """
 struct RecordEnvironmentTransitions
     trans_probs_history::Array{Array{Float64,1}, 1}
-    switchflag::Array{Bool, 1}
+    switchflag::Array{Array{Bool, 2}, 1}
 end
-RecordEnvironmentTransitions() = RecordEnvironmentTransitions(Array{Array{Float64,1}}(undef, 1), Bool[])
+RecordEnvironmentTransitions() = RecordEnvironmentTransitions(
+                                            Array{Array{Float64,1}}(undef, 1),
+                                            Array{Array{Bool,2}}(undef, 1))
 function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
 
     if in(:trans_probs, fieldnames(typeof(rlsetup.environment))) # MDP
