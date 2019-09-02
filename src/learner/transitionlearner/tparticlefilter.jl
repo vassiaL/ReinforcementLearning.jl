@@ -35,15 +35,15 @@ end
 export TParticleFilter
 function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
     # if !done
-        learnerT.particlesswitch[a0, s0, :] .= false
-        stayterms = computestayterms(learnerT, s0, a0, s1)
-        getweights!(learnerT, s0, a0, stayterms, 1. / learnerT.ns)
-        sampleparticles!(learnerT, s0, a0, stayterms, 1. / learnerT.ns)
-        Neff = 1. /sum(learnerT.weights[a0, s0, :] .^2)
-        if Neff <= learnerT.Neffthrs; resample!(learnerT, s0, a0); end
-        updatecounts!(learnerT, s0, a0, s1)
-        computePs1a0s0!(learnerT, s0, a0)
-    # end
+    learnerT.particlesswitch[a0, s0, :] .= false
+    stayterms = computestayterms(learnerT, s0, a0, s1)
+    getweights!(learnerT, s0, a0, stayterms, 1. / learnerT.ns)
+    sampleparticles!(learnerT, s0, a0, stayterms, 1. / learnerT.ns)
+    Neff = 1. /sum(learnerT.weights[a0, s0, :] .^2)
+    if Neff <= learnerT.Neffthrs; resample!(learnerT, s0, a0); end
+    updatecounts!(learnerT, s0, a0, s1)
+    computePs1a0s0!(learnerT, s0, a0)
+    leakothers!(learnerT, a0, s0)
 end
 export updatet!
 function computestayterms(learnerT::TParticleFilter, s0, a0, s1)
@@ -114,6 +114,28 @@ function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
         learnerT.Ps1a0s0[s][(a0, s0)] = copy(expectedvaluethetas[s])
         #@show learnerT.Ps1a0s0[s][(a0, s0)]
     end
+end
+function leakothers!(learnerT::TParticleFilter, a0, s0)
+    pairs = getstateactionpairs!(learnerT, a0, s0)
+    for sa in pairs
+        @show sa
+        if !all(@. all(learnerT.counts[sa[1], sa[2], :] == [zeros(learnerT.ns)]))
+            for i in 1:learnerT.nparticles
+                @show learnerT.counts[sa[1], sa[2], i]
+                r = rand(learnerT.rng) # Draw and possibly update
+                if r < learnerT.changeprobability
+                    println("Yes!")
+                    learnerT.counts[sa[1], sa[2], i] = zeros(learnerT.ns)
+                end
+                @show learnerT.counts[sa[1], sa[2], i]
+            end
+        end
+    end
+end
+function getstateactionpairs!(learnerT, a0, s0)
+    pairs = collect(Iterators.product(1:learnerT.na, 1:learnerT.ns))[:]
+    deleteat!(pairs, findall([x == (a0,s0) for x in pairs])[1])
+    pairs
 end
 function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile, TVarSmile},
                         actionspace, buffer)

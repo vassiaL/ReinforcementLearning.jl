@@ -479,28 +479,53 @@ mutable struct RecordSwitches
     timestep::Int
 end
 RecordSwitches() = RecordSwitches(Array{Array{Array{Int,1}}, 2}(undef, 1, 1), 1)
-
 function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
-    # @show p.timestep
-    # -------- ChMDP for changes of only one s-a pair (Option 2)
-    if p.timestep == 1
+    # # -----------------------------------------------------------
+    # # # # Callback for:  For all s-a pairs, change them with prob pc: (option c.)
+    # # -----------------------------------------------------------
+    # # -----------------------------------------------------------
+    @show p.timestep
+    if p.timestep == 1 # Initialize
         p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
                                     rlsetup.learner.na, rlsetup.learner.ns)
+        [p.stateactionvisits[a, s] = [[]] for a in 1:rlsetup.learner.na
+                                            for s in 1:rlsetup.learner.ns]
     end
+    # If there was a switch push an empty array
+    for a in 1:rlsetup.learner.na
+        for s in 1:rlsetup.learner.ns
+            if rlsetup.environment.switchflag[a,s]
+                @show LinearIndices(p.stateactionvisits)[a, s]
+                @show a, s
+                push!(p.stateactionvisits[a, s], [])
+            end
+        end
+    end
+    # Push curent timestep to the currently visited s-a pair
     a0 = rlsetup.buffer.actions[1]
     s0 = rlsetup.buffer.states[1]
-
-    if !isassigned(p.stateactionvisits, LinearIndices(p.stateactionvisits)[a0, s0]) # If very first step
-        p.stateactionvisits[a0, s0] = [[p.timestep]]
-    elseif rlsetup.environment.switchflag # Switch! Push new array
-        push!(p.stateactionvisits[a0, s0], [p.timestep])
-    else # Push timepoint in current array
-        push!(p.stateactionvisits[a0, s0][end], p.timestep)
-    end
-
+    push!(p.stateactionvisits[a0, s0][end], p.timestep)
     p.timestep += 1
-
-    # -------- ChMDp when whole MDP is changing
+    # # -----------------------------------------------------------
+    # # # # Callback for: Pick randomly an s-a pair and change it: (Problem: generative model is not the one we assume. Complicated)
+    # # -----------------------------------------------------------
+    # if p.timestep == 1
+    #     p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
+    #                                 rlsetup.learner.na, rlsetup.learner.ns)
+    # end
+    # a0 = rlsetup.buffer.actions[1]
+    # s0 = rlsetup.buffer.states[1]
+    # if !isassigned(p.stateactionvisits, LinearIndices(p.stateactionvisits)[a0, s0]) # If very first step
+    #     p.stateactionvisits[a0, s0] = [[p.timestep]]
+    # elseif rlsetup.environment.switchflag # Switch! Push new array
+    #     push!(p.stateactionvisits[a0, s0], [p.timestep])
+    # else # Push timepoint in current array
+    #     push!(p.stateactionvisits[a0, s0][end], p.timestep)
+    # end
+    # p.timestep += 1
+    # # -----------------------------------------------------------
+    # # # # Callback for: When whole MDP is changing
+    # # -----------------------------------------------------------
     # if p.timestep == 1
     #     p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
     #                             rlsetup.learner.na, rlsetup.learner.ns)
@@ -524,7 +549,6 @@ function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     # push!(p.stateactionvisits[a0, s0][end], p.timestep)
     # p.timestep += 1
 end
-
 function reset!(p::RecordSwitches)
     if isassigned(p.stateactionvisits); empty!(p.switchflag) end
     p.timestep = 1

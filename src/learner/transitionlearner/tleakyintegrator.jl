@@ -31,6 +31,24 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     else
         learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
     end
+    leakothers!(learnerT, a0, s0)
+end
+function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
+    pairs = getstateactionpairs!(learnerT, a0, s0)
+    for sa in pairs
+        @show sa
+        @show learnerT.Nsa[sa[1], sa[2]]
+        learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
+        @show learnerT.Nsa[sa[1], sa[2]]
+        nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
+        for sprime in nextstates
+            @show sprime
+            @show learnerT.Ns1a0s0[sprime][sa]
+            learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
+            @show learnerT.Ns1a0s0[sprime][sa]
+        end
+
+    end
 end
 
 ## ----- Delete me: init with 0s

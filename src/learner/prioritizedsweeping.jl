@@ -96,13 +96,13 @@ function addtoqueue!(q, s, p)
     end
 end
 function processqueue!(learner::SmallBackups)
-    @show learner.queue
+    # @show learner.queue
     while length(learner.queue) > 0 && learner.counter < learner.maxcount
         learner.counter += 1
         s1 = dequeue!(learner.queue)
-        @show s1
+        # @show s1
         ΔV = learner.V[s1] - learner.U[s1]
-        @show learner.V[s1], learner.U[s1], ΔV
+        # @show learner.V[s1], learner.U[s1], ΔV
         learner.U[s1] = learner.V[s1]
         processqueueupdateq!(learner, s1, ΔV)
     end
@@ -131,11 +131,11 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyI
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
-            @show ((a0, s0), n)
+            # @show ((a0, s0), n)
             if learner.Testimate.Ps1a0s0[s1][a0, s0] > 0.
                 learner.Q[a0, s0] += learner.γ * ΔV * n
                 learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
-                @show learner.V[s0]
+                # @show learner.V[s0]
                 p = abs(learner.V[s0] - learner.U[s0])
                 if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
             end
@@ -171,6 +171,7 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
                 a0, s0, s1, r, done)
     if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
+    @show nextstates
     nextvs = [learner.U[s] for s in nextstates]
     @show nextvs
     nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
@@ -185,11 +186,11 @@ function updateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator},
     if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ps1a0s0[s],(a0,s0))]
     nextvs = [learner.U[s] for s in nextstates]
-    @show nextvs
+    # @show nextvs
     nextps = [learner.Testimate.Ps1a0s0[s][a0, s0] for s in nextstates]
-    @show nextps
+    # @show nextps
     learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
-    @show learner.Q[a0,s0]
+    # @show learner.Q[a0,s0]
 end
 # function update!(learner::SmallBackups{TT, TR}, buffer) where {TT, TR}
 function update!(learner::SmallBackups, buffer)
@@ -212,8 +213,8 @@ function update!(learner::SmallBackups, buffer)
     p = abs(learner.V[s0] - learner.U[s0])
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
     processqueue!(learner)
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
 end
 export update!
