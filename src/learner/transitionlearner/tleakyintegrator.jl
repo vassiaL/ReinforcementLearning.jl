@@ -36,16 +36,16 @@ end
 function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
     pairs = getstateactionpairs!(learnerT, a0, s0)
     for sa in pairs
-        @show sa
-        @show learnerT.Nsa[sa[1], sa[2]]
+        # @show sa
+        # @show learnerT.Nsa[sa[1], sa[2]]
         learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
-        @show learnerT.Nsa[sa[1], sa[2]]
+        # @show learnerT.Nsa[sa[1], sa[2]]
         nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
         for sprime in nextstates
-            @show sprime
-            @show learnerT.Ns1a0s0[sprime][sa]
+            # @show sprime
+            # @show learnerT.Ns1a0s0[sprime][sa]
             learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
-            @show learnerT.Ns1a0s0[sprime][sa]
+            # @show learnerT.Ns1a0s0[sprime][sa]
         end
 
     end

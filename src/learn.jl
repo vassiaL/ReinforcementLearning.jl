@@ -1,25 +1,24 @@
 @inline function step!(rlsetup, a)
     @unpack learner, policy, buffer, preprocessor, environment, fillbuffer = rlsetup
     s0, r0, done0 = interact!(environment, a)
-    @show s0, r0, done0
+    #@show s0, r0, done0
     s, r, done = preprocess(preprocessor, s0, r0, done0)
-    @show s, r, done
+    # @show s, r, done
     if fillbuffer; pushreturn!(buffer, r, done) end
-    @show buffer.states
+    # @show buffer.states
     if done
-        println("I m here")
         if fillbuffer; pushterminalstates!(buffer, s) end
         s0, = reset!(environment)
-        @show s0
+        # @show s0
         s = preprocessstate(preprocessor, s0)
-        @show s
+        # @show s
     end
     if fillbuffer; pushstate!(buffer, s) end
     a = policy(s)
-    @show a
+    # @show a
     if fillbuffer pushaction!(buffer, a) end
-    @show buffer.states
-    @show buffer.actions
+    # @show buffer.states
+    # @show buffer.actions
 
     # println("--------------")
     # @show s, a, r, done
@@ -48,7 +47,6 @@ Runs an [`rlsetup`](@ref RLSetup) with learning.
 function learn!(rlsetup)
     @unpack learner, buffer = rlsetup
     a = firststateaction!(rlsetup) #TODO: callbacks don't see first state action
-    @show a
     while true
         sraw, a, r, done = step!(rlsetup, a)
         if rlsetup.islearning; update!(learner, buffer); end

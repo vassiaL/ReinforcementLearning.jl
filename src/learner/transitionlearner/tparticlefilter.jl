@@ -118,16 +118,16 @@ end
 function leakothers!(learnerT::TParticleFilter, a0, s0)
     pairs = getstateactionpairs!(learnerT, a0, s0)
     for sa in pairs
-        @show sa
+        # @show sa
         if !all(@. all(learnerT.counts[sa[1], sa[2], :] == [zeros(learnerT.ns)]))
             for i in 1:learnerT.nparticles
-                @show learnerT.counts[sa[1], sa[2], i]
+                # @show learnerT.counts[sa[1], sa[2], i]
                 r = rand(learnerT.rng) # Draw and possibly update
                 if r < learnerT.changeprobability
-                    println("Yes!")
+                    # println("Yes!")
                     learnerT.counts[sa[1], sa[2], i] = zeros(learnerT.ns)
                 end
-                @show learnerT.counts[sa[1], sa[2], i]
+                # @show learnerT.counts[sa[1], sa[2], i]
             end
         end
     end

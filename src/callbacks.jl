@@ -452,7 +452,11 @@ function callback!(p::RecordEnvironmentTransitions, rlsetup, sraw, a, r, done)
     end
 
     if in(:switchflag, fieldnames(typeof(rlsetup.environment)))
-        push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
+        if !isassigned(p.switchflag) # If very first step
+            p.switchflag[1] = deepcopy(rlsetup.environment.switchflag)
+        else
+            push!(p.switchflag, deepcopy(rlsetup.environment.switchflag))
+        end
     end
 
     a0 = rlsetup.buffer.actions[1]
@@ -484,7 +488,7 @@ function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     # # # # Callback for:  For all s-a pairs, change them with prob pc: (option c.)
     # # -----------------------------------------------------------
     # # -----------------------------------------------------------
-    @show p.timestep
+    # @show p.timestep
     if p.timestep == 1 # Initialize
         p.stateactionvisits = Array{Array{Array{Int,1}}, 2}(undef,
                                     rlsetup.learner.na, rlsetup.learner.ns)
@@ -495,8 +499,8 @@ function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     for a in 1:rlsetup.learner.na
         for s in 1:rlsetup.learner.ns
             if rlsetup.environment.switchflag[a,s]
-                @show LinearIndices(p.stateactionvisits)[a, s]
-                @show a, s
+                # @show LinearIndices(p.stateactionvisits)[a, s]
+                # @show a, s
                 push!(p.stateactionvisits[a, s], [])
             end
         end

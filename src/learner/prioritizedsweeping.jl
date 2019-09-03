@@ -114,11 +114,11 @@ function processqueueupdateq!(learner::SmallBackups{<:Union{RIntegrator, REstima
                             s1, ΔV)
     if length(learner.Testimate.Ns1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ns1a0s0[s1]
-        @show ((a0, s0), n)
+        # @show ((a0, s0), n)
             if n > 0. && learner.Testimate.Nsa[a0, s0] >= learner.M
                 learner.Q[a0, s0] += learner.γ * ΔV * n/learner.Testimate.Nsa[a0, s0]
                 learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
-                @show learner.V[s0]
+                # @show learner.V[s0]
                 p = abs(learner.V[s0] - learner.U[s0])
                 if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
             end
@@ -171,13 +171,13 @@ function updateq!(learner::SmallBackups{RIntegrator, TLeakyIntegrator},
                 a0, s0, s1, r, done)
     if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
-    @show nextstates
+    # @show nextstates
     nextvs = [learner.U[s] for s in nextstates]
-    @show nextvs
+    # @show nextvs
     nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
-    @show nextps
+    # @show nextps
     learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
-    @show learner.Q[a0,s0]
+    # @show learner.Q[a0,s0]
 end
 """ Full backup: TParticle, TSmile (using probabilites Ps1a0s0)"""
 function updateq!(learner::SmallBackups{<:Union{RIntegrator, RLeakyIntegrator},
@@ -202,9 +202,9 @@ function update!(learner::SmallBackups, buffer)
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
 
-    println("--------------")
-    @show a0, s0, s1, a1, r, done
-    @show a0, s0, sprime, a1, r, done
+    # println("--------------")
+    # @show a0, s0, s1, a1, r, done
+    # @show a0, s0, sprime, a1, r, done
 
     updatet!(learner.Testimate, s0, a0, sprime, done)
     updater!(learner.Restimate, s0, a0, r)
