@@ -82,10 +82,7 @@ end
 export SmallBackups
 function defaultpolicy(learner::Union{SmallBackups, MonteCarlo}, actionspace,
                        buffer)
-    # if ExplorationBonusDummy
     EpsilonGreedyPolicy(.1, actionspace, s -> getvalue(learner.Q, s))
-    # else
-    #EpsilonGreedyPolicy(.1, actionspace, s -> getvalue(learner.bonus.Qaugmented, s))
 end
 export defaultpolicy
 function addtoqueue!(q, s, p)

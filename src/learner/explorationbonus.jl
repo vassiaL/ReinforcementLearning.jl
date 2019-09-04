@@ -12,19 +12,21 @@ mutable struct ExplorationBonusLeaky
     α0::Array{Float64, 2}
     backupstep::Int
     backupcounter::Int
-    beta::Float64
+    β::Float64
     rewardbonus::Array{Float64, 2}
     Qaugmented::Array{Float64, 2}
 end
 function ExplorationBonusLeaky(; ns = 10, na = 4, etaleakbonus = .9,
                                     smallestvalue = eps(),
                                     backupstep = 30, backupcounter = 0,
-                                    beta = 2.5)
+                                    β = 0.1)
     α0 = smallestvalue .* ones(na, ns)
-    rewardbonus = beta ./ sqrt.(α0)
-    Qaugmented = beta ./ sqrt.(α0)
-    ExplorationBonusLeaky(ns, na, etaleakbonus, smallestvalue,
-                                α0, backupstep, backupcounter, beta,
+    # rewardbonus = β ./ sqrt.(α0)
+    # Qaugmented = β ./ sqrt.(α0)
+    rewardbonus = zeros(na, ns)
+    Qaugmented = zeros(na, ns)
+    ExplorationBonusLeaky(ns, na, etaleakbonus, smallestvalue, α0,
+                                backupstep, backupcounter, β,
                                 rewardbonus, Qaugmented)
 end
 export ExplorationBonusLeaky
@@ -32,82 +34,51 @@ function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TLeakyIntegrator,
                         s0, a0, s1, done)
     bonus.backupcounter += 1
     @show (s0, a0, s1, done)
-    leakbonus!(bonus)
-    bonus.α0[a0, s0] = copy(learnerT.α0[a0, s0]) # Get a0, s0 counts
-    bonus.rewardbonus = computeRewardBonus!(bonus)
+    # leakbonus!(bonus)
+    computeRewardBonus!(bonus, learnerT)
 end
-function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter,
+function updatebonus!(bonus::ExplorationBonusLeaky,
+                        learnerT::Union{TParticleFilter, TVarSmile},
                         s0, a0, s1, done)
     bonus.backupcounter += 1
     @show bonus.backupcounter
     @show (a0, s0, s1, done)
-    leakbonus!(bonus)
-    # If it's not terminal: get particle filter counts
-    if !done
-        countsweighted = getcountsweighted(learnerT, a0, s0) # Get a0, s0 counts
-        @show countsweighted
-        bonus.α0[a0, s0] = bonus.smallestvalue + sum(sum(countsweighted, dims = 1))
-    else
-        bonus.α0[a0, s0] += 1.
-    end
+    # leakbonus!(bonus)
+    getα0!(bonus, learnerT)
     @show bonus.α0
-    bonus.rewardbonus = computeRewardBonus!(bonus)
+    computeRewardBonus!(bonus, learnerT)
     @show bonus.rewardbonus
 end
-function updatebonus!(bonus::ExplorationBonusLeaky, learnerT::TVarSmile,
-                                s0, a0, s1, done)
-    bonus.backupcounter += 1
-    @show (s0, a0, s1, done)
-    leakbonus!(bonus)
-    if !done # Get a0, s0 counts
-        bonus.α0[a0, s0] = sum(learnerT.alphas[a0, s0])
-    else
-        bonus.α0[a0, s0] += 1.
-    end
-    bonus.rewardbonus = computeRewardBonus!(bonus)
-end
 export updatebonus!
-function getcountsweighted(learnerT::TParticleFilter, a0, s0)
+function getα0!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter)
+    for a in 1:learnerT.na
+        for s in 1:learnerT.ns
+            if !all(@. all(learnerT.counts[a, s, :] == [zeros(learnerT.ns)]))
+                bonus.α0[a, s] = bonus.smallestvalue
+            else
+                countsweighted = getcountsweighted(learnerT::TParticleFilter, a, s)
+                bonus.α0[a, s] = bonus.smallestvalue + sum(sum(countsweighted, dims = 1))
+            end
+        end
+    end
+end
+function getα0(bonus::ExplorationBonusLeaky, learnerT::TVarSmile)
+    for a in 1:learnerT.na
+        for s in 1:learnerT.ns
+            bonus.α0[a, s] = sum(learnerT.alphas[a, s])
+        end
+    end
+end
+function getcountsweighted(learnerT::TParticleFilter, a, s)
     countsweighted = zeros(learnerT.nparticles, learnerT.ns)
     for i in 1:learnerT.nparticles
-        countsweighted[i,:] = learnerT.weights[a0, s0, i] .*
-                                learnerT.counts[a0, s0, i]
+        countsweighted[i,:] = learnerT.weights[a, s, i] .* learnerT.counts[a, s, i]
     end
     countsweighted
 end
-function leakbonus!(bonus::ExplorationBonusLeaky)
-    @. bonus.α0 .= bonus.etaleakbonus .* bonus.smallestvalue +
-                (1 - bonus.etaleakbonus) .* bonus.α0 # Diffuse everything
+function computeRewardBonus!(bonus::ExplorationBonusLeaky, learnerT::TLeakyIntegrator)
+    bonus.rewardbonus = bonus.β ./ sqrt.(bonus.Nsa)
 end
-function computeRewardBonus!(bonus::ExplorationBonusLeaky)
-    bonus.rewardbonus = bonus.beta ./ sqrt.(bonus.α0)
+function computeRewardBonus!(bonus::ExplorationBonusLeaky, learnerT)
+    bonus.rewardbonus = bonus.β ./ sqrt.(bonus.α0)
 end
-# function updateQaugmented!(bonus, learner)
-#     bonus.backupcounter += 1
-#     if bonus.backupcounter == bonus.backupstep
-#         backupbonus!(bonus, learner)
-#         bonus.Qaugmented = copy(learner.Q)
-#         bonus.backupcounter = 0
-#     else
-#         @. bonus.Qaugmented = bonus.rewardbonus + learner.Q
-#     end
-# end
-# export updateQaugmented!
-# function backupbonus!(bonus, learner)
-#     # for all states and actions : # Update reward
-#     for a in 1:bonus.na
-#         for s in 1:bonus.ns
-#             learner.Restimate.R[a, s] += bonus.rewardbonus
-#             for sprime in 1:bonus.ns
-#                 # Update Q values
-#                 updateq!(learner, a, s, sprime, nothing, false)
-#                 learner.V[s] = maximumbelowInf(learner.Q[:, s])
-#                 # processqueue
-#                 p = abs(learner.V[s] - learner.U[s])
-#                 if p > learner.minpriority; addtoqueue!(learner.queue, s, p); end
-#                 processqueue!(learner)
-#             end
-#         end
-#     end
-# end
-# export backupbonus!

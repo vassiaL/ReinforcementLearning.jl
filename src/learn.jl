@@ -47,12 +47,21 @@ Runs an [`rlsetup`](@ref RLSetup) with learning.
 function learn!(rlsetup)
     @unpack learner, buffer = rlsetup
     a = firststateaction!(rlsetup) #TODO: callbacks don't see first state action
+    # t = 0
+    # start = time()
     while true
+        # t+=1
         sraw, a, r, done = step!(rlsetup, a)
         if rlsetup.islearning; update!(learner, buffer); end
         for callback in rlsetup.callbacks
             callback!(callback, rlsetup, sraw, a, r, done)
         end
+        # if t == 100
+        #     elapsedtime = time() - start
+        #     @show elapsedtime
+        #     t = 0
+        #     start = time()
+        # end
         if isbreak!(rlsetup.stoppingcriterion, sraw, a, r, done); break; end
     end
 end
