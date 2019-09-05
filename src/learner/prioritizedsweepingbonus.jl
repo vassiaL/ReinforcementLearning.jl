@@ -245,16 +245,15 @@ function backup!(learner::SmallBackups{TR, TT, ExplorationBonusLeaky} where {TR,
         processqueue!(learner)
         addbonus!(learner)
     end
-    @show learner.Q
-    @show learner.EBonus.Qaugmented
 end
 function backup!(learner::SmallBackups{TR, TT, ExplorationBonusDummy} where {TR, TT})
         processqueue!(learner)
         # @show learner.Q
 end
-function setInftozero!(bonus::ExplorationBonusLeaky, learnerT)
-    indexinf = [i for i in 1:length(learnerT.Q) if learnerT.Q[i] == Inf64]
+function setInftozero!(bonus::ExplorationBonusLeaky, learner)
+    indexinf = [i for i in 1:length(learner.Q) if learner.Q[i] == Inf64]
     [bonus.rewardbonus[i] = 0. for i in indexinf]
+    @show bonus.rewardbonus
 end
 # function update!(learner::SmallBackups{TT, TR}, buffer) where {TT, TR}
 function update!(learner::SmallBackups, buffer)
@@ -265,22 +264,29 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
-    # println("--------------")
-    # @show a0, s0, s1, a1, r, done
-    # @show a0, s0, sprime, a1, r, done
+
+    println("--------------")
+    @show a0, s0, s1, a1, r, done
+    @show a0, s0, sprime, a1, r, done
+
     updatet!(learner.Testimate, s0, a0, sprime, done)
     updater!(learner.Restimate, s0, a0, r)
     updatebonus!(learner.EBonus, learner.Testimate, s0, a0, sprime, done)
+    @show learner.Q
+    updateq!(learner, a0, s0, sprime, r, done)
+    @show learner.Q
     setInftozero!(learner.EBonus, learner)
 
-    updateq!(learner, a0, s0, sprime, r, done)
     learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
     p = abs(learner.V[s0] - learner.U[s0])
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
 
     backup!(learner)
-    # for s in 1:size(learner.Q,2)
-    #        @show learner.Q[:, s]
-    # end
+    for s in 1:size(learner.Q, 2)
+           @show learner.Q[:, s]
+    end
+    for s in 1:size(learner.EBonus.Qaugmented, 2)
+           @show learner.EBonus.Qaugmented[:,s]
+    end
 end
 export update!

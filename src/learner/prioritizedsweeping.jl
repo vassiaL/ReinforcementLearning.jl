@@ -155,6 +155,7 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, Smal
             learner.Q[a0, s0] = (learner.Q[a0, s0] * (learner.Testimate.Nsa[a0, s0] - 1) +
                                 r + nextv) / learner.Testimate.Nsa[a0, s0]
         end
+        # @show learner.Q[a0,s0]
     end
     # if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
     # nextv = learner.γ * learner.U[s1]
@@ -207,6 +208,7 @@ function update!(learner::SmallBackups, buffer)
     updater!(learner.Restimate, s0, a0, r)
     updateq!(learner, a0, s0, sprime, r, done)
     learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
+    # @show learner.V[s0]
     p = abs(learner.V[s0] - learner.U[s0])
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
     processqueue!(learner)
