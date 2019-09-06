@@ -44,9 +44,13 @@ function updatebonus!(bonus::ExplorationBonusLeaky, learnerT, s0, a0, s1, done)
     @show bonus.backupcounter
     # leakbonus!(bonus)
     getNsa!(bonus, learnerT)
-    @show bonus.Nsa
+    for s in 1:learnerT.ns
+        @show bonus.Nsa[:, s]
+    end
     computeRewardBonus!(bonus)
-    @show bonus.rewardbonus
+    for s in 1:learnerT.ns
+        @show bonus.rewardbonus[:, s]
+    end
 end
 export updatebonus!
 function getNsa!(bonus::ExplorationBonusLeaky, learnerT::TLeakyIntegrator)
@@ -54,7 +58,7 @@ function getNsa!(bonus::ExplorationBonusLeaky, learnerT::TLeakyIntegrator)
 end
 function getNsa!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter)
     for a in 1:learnerT.na
-        @show a
+        # @show a
         for s in 1:learnerT.ns
             # @show s
             # @show learnerT.counts[a, s, :]
@@ -67,7 +71,6 @@ function getNsa!(bonus::ExplorationBonusLeaky, learnerT::TParticleFilter)
                 bonus.Nsa[a, s] = sum(sum(countsweighted, dims = 1))
             end
         end
-        @show bonus.Nsa[a, :]
     end
 end
 function getNsa!(bonus::ExplorationBonusLeaky, learnerT::TVarSmile)
