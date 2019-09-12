@@ -37,7 +37,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
     Testimate::TTEstimate
     queue::PriorityQueue
 end
-function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = 0., maxcount = 3,#initvalue = Inf64 #initvalue = 1. / (1. - γ),
+function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 3, #initvalue = 1. / (1. - γ), # initvalue = 0.
     minpriority = 1e-8, M = 1., counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
