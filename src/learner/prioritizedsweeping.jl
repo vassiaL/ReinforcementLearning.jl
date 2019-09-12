@@ -37,7 +37,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
     Testimate::TTEstimate
     queue::PriorityQueue
 end
-function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = Inf64, maxcount = 3,
+function SmallBackups(; ns = 10, na = 4, γ = .9, initvalue = 0., maxcount = 3,#initvalue = Inf64 #initvalue = 1. / (1. - γ),
     minpriority = 1e-8, M = 1., counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
@@ -203,23 +203,23 @@ function update!(learner::SmallBackups, buffer)
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
 
-    println("--------------")
-    @show a0, s0, s1, a1, r, done
-    @show a0, s0, sprime, a1, r, done
+    # println("--------------")
+    # @show a0, s0, s1, a1, r, done
+    # @show a0, s0, sprime, a1, r, done
 
     updatet!(learner.Testimate, s0, a0, sprime, done)
     updater!(learner.Restimate, s0, a0, sprime, r)
-    @show learner.Restimate.R
-    @show learner.Q
+    # @show learner.Restimate.R
+    # @show learner.Q
     updateq!(learner, a0, s0, sprime, r, done)
-    @show learner.Q
+    # @show learner.Q
     learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
-    @show learner.V[s0]
+    # @show learner.V[s0]
     p = abs(learner.V[s0] - learner.U[s0])
     if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
     processqueue!(learner)
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
 end
 export update!

@@ -25,6 +25,13 @@ function TParticleFilter(;ns = 10, na = 4, nparticles = 6, changeprobability = .
     particlesswitch = Array{Bool, 3}(undef, na, ns, nparticles)
     weights = Array{Float64, 3}(undef, na, ns, nparticles)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
+    # for s in 1:ns # Initialize all transitions to 0
+    #     for a in 1:na
+    #         for sprime in 1:ns
+    #             Ps1a0s0[sprime][(a, s)] = 1. /ns
+    #         end
+    #     end
+    # end
     counts = Array{Array{Float64,1}}(undef, na, ns, nparticles)
     rng = MersenneTwister(seed)
     [weights[a0, s0, i] = 1. /nparticles for a0 in 1:na for s0 in 1:ns for i in 1:nparticles]

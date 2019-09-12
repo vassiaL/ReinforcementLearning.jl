@@ -47,7 +47,7 @@ Runs an [`rlsetup`](@ref RLSetup) with learning.
 function learn!(rlsetup)
     @unpack learner, buffer = rlsetup
     a = firststateaction!(rlsetup) #TODO: callbacks don't see first state action
-    @show a
+    # @show a
     # t = 0
     # start = time()
     while true
