@@ -25,13 +25,7 @@ function TParticleFilter(;ns = 10, na = 4, nparticles = 6, changeprobability = .
     particlesswitch = Array{Bool, 3}(undef, na, ns, nparticles)
     weights = Array{Float64, 3}(undef, na, ns, nparticles)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
-    # for s in 1:ns # Initialize all transitions to 0
-    #     for a in 1:na
-    #         for sprime in 1:ns
-    #             Ps1a0s0[sprime][(a, s)] = 1. /ns
-    #         end
-    #     end
-    # end
+    [Ps1a0s0[sprime][(a, s)] = 1. /ns for sprime in 1:ns for a in 1:2 for s in 1:ns]
     counts = Array{Array{Float64,1}}(undef, na, ns, nparticles)
     rng = MersenneTwister(seed)
     [weights[a0, s0, i] = 1. /nparticles for a0 in 1:na for s0 in 1:ns for i in 1:nparticles]
@@ -50,6 +44,7 @@ function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
     if Neff <= learnerT.Neffthrs; resample!(learnerT, s0, a0); end
     updatecounts!(learnerT, s0, a0, s1)
     computePs1a0s0!(learnerT, s0, a0)
+    computeterminalPs1a0s0!(learnerT, s1, done)
     leakothers!(learnerT, a0, s0)
 end
 export updatet!
@@ -119,7 +114,7 @@ function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
     expectedvaluethetas = sum(thetasweighted, dims = 1)
     for s in 1:learnerT.ns
         learnerT.Ps1a0s0[s][(a0, s0)] = copy(expectedvaluethetas[s])
-        #@show learnerT.Ps1a0s0[s][(a0, s0)]
+        @show learnerT.Ps1a0s0[s][(a0, s0)]
     end
 end
 function leakothers!(learnerT::TParticleFilter, a0, s0)
@@ -135,6 +130,20 @@ function leakothers!(learnerT::TParticleFilter, a0, s0)
                     learnerT.counts[sa[1], sa[2], i] = zeros(learnerT.ns)
                 end
                 # @show learnerT.counts[sa[1], sa[2], i]
+            end
+        end
+    end
+end
+function computeterminalPs1a0s0!(learnerT::Union{TParticleFilter, TVarSmile}, s1, done)
+    if done
+        for a in 1:learnerT.na
+            for s in 1:learnerT.ns
+                if s == s1
+                    learnerT.Ps1a0s0[s][(a, s1)] = 1.
+                else
+                    learnerT.Ps1a0s0[s][(a, s1)] = 0.
+                end
+                @show a, s1, s, learnerT.Ps1a0s0[s][(a, s1)]
             end
         end
     end

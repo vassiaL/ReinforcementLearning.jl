@@ -17,6 +17,7 @@ end
 export TIntegrator
 function updatet!(learnerT::TIntegrator, s0, a0, s1, done)
     learnerT.Nsa[a0, s0] += 1
+    # ---- If updating transitions to the goal doesn't matter (eg R(s,a) ):
     if !done
         if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
             learnerT.Ns1a0s0[s1][(a0, s0)] += 1
@@ -24,4 +25,6 @@ function updatet!(learnerT::TIntegrator, s0, a0, s1, done)
             learnerT.Ns1a0s0[s1][(a0, s0)] = 1
         end
     end
+    # ---- If it matters...
+    # learnerT.Ns1a0s0[s1][(a0, s0)] += 1
 end

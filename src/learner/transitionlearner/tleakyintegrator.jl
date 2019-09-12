@@ -11,8 +11,9 @@ struct TLeakyIntegrator
     Ns1a0s0::Array{Dict{Tuple{Int, Int}, Float64}, 1}
 end
 function TLeakyIntegrator(; ns = 10, na = 4, etaleak = .9)
-    Nsa = zeros(na, ns)
+    Nsa = zeros(na, ns) .+ eps()
     Ns1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
+    [Ns1a0s0[sprime][(a, s)] = eps() for sprime in 1:ns for a in 1:2 for s in 1:ns]
     TLeakyIntegrator(ns, na, etaleak, Nsa, Ns1a0s0)
 end
 export TLeakyIntegrator
@@ -32,6 +33,7 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
         learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
     end
     leakothers!(learnerT, a0, s0)
+    computeterminalNs1a0s0!(learnerT, s1, done)
 end
 function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
     pairs = getstateactionpairs!(learnerT, a0, s0)
@@ -50,7 +52,21 @@ function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
 
     end
 end
-
+function computeterminalNs1a0s0!(learnerT::TLeakyIntegrator, s1, done)
+    if done
+        for a in 1:learnerT.na
+            for s in 1:learnerT.ns
+                if s == s1
+                    learnerT.Nsa[a, s1] = 1.
+                    learnerT.Ns1a0s0[s][(a, s1)] = 1.
+                else
+                    learnerT.Ns1a0s0[s][(a, s1)] = 0.
+                end
+                @show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
+            end
+        end
+    end
+end
 ## ----- Delete me: init with 0s
 # function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
 #     # ------ VERSION 2: Leave rest s0, a0 untouched
