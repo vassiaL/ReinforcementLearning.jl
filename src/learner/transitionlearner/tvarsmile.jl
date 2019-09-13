@@ -17,7 +17,7 @@ end
 function TVarSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     pcprime = m/(1. + m)
     Ps1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
-    [Ps1a0s0[sprime][(a, s)] = 1. /ns for sprime in 1:ns for a in 1:2 for s in 1:ns]
+    [Ps1a0s0[sprime][(a, s)] = 1. /ns for sprime in 1:ns for a in 1:na for s in 1:ns]
     alphas = Array{Array{Float64,1}}(undef, na, ns)
     [alphas[a0, s0] = stochasticity .* ones(ns) for a0 in 1:na for s0 in 1:ns]
     TVarSmile(ns, na, m, stochasticity, pcprime, Ps1a0s0, alphas)
