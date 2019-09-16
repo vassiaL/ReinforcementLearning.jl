@@ -40,13 +40,22 @@ function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
     for sa in pairs
         # @show sa
         # @show learnerT.Nsa[sa[1], sa[2]]
-        learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
+        # Bound it to avoid numerical problems
+        if learnerT.Nsa[sa[1], sa[2]] < eps()^12
+            learnerT.Nsa[sa[1], sa[2]] = eps()^12
+        else
+            learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
+        end
         # @show learnerT.Nsa[sa[1], sa[2]]
         nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
         for sprime in nextstates
             # @show sprime
             # @show learnerT.Ns1a0s0[sprime][sa]
-            learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
+            if learnerT.Ns1a0s0[sprime][sa] < eps()^12
+                learnerT.Ns1a0s0[sprime][sa] = eps()^12
+            else
+                learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
+            end
             # @show learnerT.Ns1a0s0[sprime][sa]
         end
 
@@ -62,7 +71,7 @@ function computeterminalNs1a0s0!(learnerT::TLeakyIntegrator, s1, done)
                 else
                     learnerT.Ns1a0s0[s][(a, s1)] = 0.
                 end
-                @show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
+                #@show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
             end
         end
     end

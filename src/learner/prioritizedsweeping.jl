@@ -1,3 +1,4 @@
+using Random
 """
     mutable struct SmallBackups{TREstimate,TTEstimate} <: AbstractReinforcementLearner
         ns::Int = 10
@@ -101,13 +102,13 @@ function addtoqueue!(q, s, p)
     end
 end
 function processqueue!(learner::SmallBackups)
-    @show learner.queue
+    #@show learner.queue
     while length(learner.queue) > 0 && learner.counter < learner.maxcount
         learner.counter += 1
         s1 = dequeue!(learner.queue)
-        @show s1
+        # @show s1
         ΔV = learner.V[s1] - learner.U[s1]
-        @show learner.V[s1], learner.U[s1], ΔV
+        # @show learner.V[s1], learner.U[s1], ΔV
         learner.U[s1] = learner.V[s1]
         processqueueupdateq!(learner, s1, ΔV)
     end
@@ -118,8 +119,8 @@ function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TIntegrator, TLe
                             s1, ΔV)
     if length(learner.Testimate.Ns1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ns1a0s0[s1]
-        @show ((a0, s0), n)
-            if n > 0. && learner.Testimate.Nsa[a0, s0] >= learner.M
+        # @show ((a0, s0), n)
+            if n > 0. #&& learner.Testimate.Nsa[a0, s0] >= learner.M
                 learner.Q[a0, s0] += learner.γ * ΔV * n/learner.Testimate.Nsa[a0, s0]
                 updateV!(learner, s0)
             end
@@ -131,7 +132,7 @@ function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TParticleFilter,
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
-            @show ((a0, s0), n)
+            # @show ((a0, s0), n)
             if learner.Testimate.Ps1a0s0[s1][a0, s0] > 0.
                 learner.Q[a0, s0] += learner.γ * ΔV * n
                 updateV!(learner, s0)
@@ -175,14 +176,15 @@ function updateq!(learner::SmallBackups{RIntegratorNextStateReward, TT} where TT
     # @show Rbar
     # learner.Q[a0, s0] = sum(nextps.* (Rbar + learner.γ * nextvs))
     # --- Update all s-a space (because Ps1a0s0 is updated in the background)
-    for s in 1:learner.ns
+    shuffledstates = shuffle(collect(1:learner.ns))
+    for s in shuffledstates
         for a in 1:learner.na
             if learner.Q[a, s] == Inf64; learner.Q[a, s] = 0.; end
             nextvs, nextps, nextstates = getnextstates(learner, a, s)
             Rbar = [learner.Restimate.R[s] for s in nextstates]
-            @show Rbar
+            # @show Rbar
             learner.Q[a, s] = sum(nextps.* (Rbar + learner.γ * nextvs))
-            @show a, s, learner.Q[a, s]
+            # @show a, s, learner.Q[a, s]
         end
         updateV!(learner, s)
     end
@@ -191,29 +193,29 @@ end
 function getnextstates(learner::SmallBackups{TR, <:Union{TParticleFilter, TSmile, TVarSmile}} where TR, a0, s0)
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ps1a0s0[s],(a0,s0))]
     nextvs = [learner.U[s] for s in nextstates]
-    @show nextvs
+    # @show nextvs
     nextps = [learner.Testimate.Ps1a0s0[s][a0, s0] for s in nextstates]
-    @show nextps
+    # @show nextps
     nextvs, nextps, nextstates
 end
 """ Get next states and probabilities -- Ns1a0s0 """
 function getnextstates(learner::SmallBackups{TR, TLeakyIntegrator} where TR, a0, s0)
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
-    @show nextstates
+    # @show nextstates
     nextvs = [learner.U[s] for s in nextstates]
-    @show nextvs
+    # @show nextvs
     nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]
-    @show nextps
+    # @show nextps
     nextvs, nextps, nextstates
 end
 function updateV!(learner::SmallBackups, s)
     learner.V[s] = maximumbelowInf(learner.Q[:, s])
-    @show learner.V[s]
-    @show learner.U[s]
+    # @show learner.V[s]
+    # @show learner.U[s]
     p = abs(learner.V[s] - learner.U[s])
-    @show p
+    # @show p
     if p > learner.minpriority; addtoqueue!(learner.queue, s, p); end
-    @show learner.queue
+    # @show learner.queue
 end
 # function updateqterminal!(learner::SmallBackups, sprime, done)
 #     if done
@@ -238,28 +240,30 @@ function update!(learner::SmallBackups, buffer)
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
 
-    println("--------------")
-    @show a0, s0, s1, a1, r, done
-    @show a0, s0, sprime, a1, r, done
+    # println("--------------")
+    # @show a0, s0, s1, a1, r, done
+    # @show a0, s0, sprime, a1, r, done
 
-    for s in 1:learner.ns
-        @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
-    end
+    # for s in 1:learner.ns
+    #     #@show learner.Testimate.Ns1a0s0[s][(a0, s0)]
+    #     @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
+    # end
 
     updatet!(learner.Testimate, s0, a0, sprime, done)
     updater!(learner.Restimate, s0, a0, sprime, r)
-    @show learner.Restimate.R
+    # @show learner.Restimate.R
 
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
 
     updateq!(learner, a0, s0, sprime, r, done)
 
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
-    # When updateq! was done for only a0, s0:
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
+
+    # ------- When updateq! was done for only a0, s0:
     #updateV!(learner, s0)
         #learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
         #@show learner.V
@@ -267,10 +271,11 @@ function update!(learner::SmallBackups, buffer)
         # if p > learner.minpriority; addtoqueue!(learner.queue, s0, p); end
 
     #updateqterminal!(learner, sprime, done)
+    # -------
 
     processqueue!(learner)
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
 end
 export update!

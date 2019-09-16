@@ -114,7 +114,7 @@ function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
     expectedvaluethetas = sum(thetasweighted, dims = 1)
     for s in 1:learnerT.ns
         learnerT.Ps1a0s0[s][(a0, s0)] = copy(expectedvaluethetas[s])
-        @show learnerT.Ps1a0s0[s][(a0, s0)]
+        #@show learnerT.Ps1a0s0[s][(a0, s0)]
     end
 end
 function leakothers!(learnerT::TParticleFilter, a0, s0)
@@ -143,7 +143,7 @@ function computeterminalPs1a0s0!(learnerT::Union{TParticleFilter, TVarSmile}, s1
                 else
                     learnerT.Ps1a0s0[s][(a, s1)] = 0.
                 end
-                @show a, s1, s, learnerT.Ps1a0s0[s][(a, s1)]
+                #@show a, s1, s, learnerT.Ps1a0s0[s][(a, s1)]
             end
         end
     end
