@@ -153,11 +153,11 @@ function getstateactionpairs!(learnerT, a0, s0)
     deleteat!(pairs, findall([x == (a0,s0) for x in pairs])[1])
     pairs
 end
-function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile, TVarSmile},
+function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TLeakyIntegratorNoBackLeak, TParticleFilter, TSmile, TVarSmile},
                         actionspace, buffer)
     RandomPolicy(actionspace)
 end
-function update!(learner::Union{TIntegrator, TLeakyIntegrator, TParticleFilter, TSmile, TVarSmile},
+function update!(learner::Union{TIntegrator, TLeakyIntegrator, TLeakyIntegratorNoBackLeak, TParticleFilter, TSmile, TVarSmile},
                 buffer)
     a0 = buffer.actions[1]
     a1 = buffer.actions[2]

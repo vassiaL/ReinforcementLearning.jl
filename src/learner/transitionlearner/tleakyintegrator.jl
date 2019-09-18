@@ -19,7 +19,12 @@ end
 export TLeakyIntegrator
 """ X[t] = etaleak * X[t-1] + etaleak * I[.] """
 function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
-    # ------ VERSION 2: Leave rest s0, a0 untouched
+    leaka0s0!(learnerT, s0, a0, s1, done)
+    #leakothers!(learnerT, a0, s0)
+    computeterminalNs1a0s0!(learnerT, s1, done)
+end
+function leaka0s0!(learnerT::Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak},
+                s0, a0, s1, done)
     learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
     learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
 
@@ -32,8 +37,6 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     else
         learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
     end
-    leakothers!(learnerT, a0, s0)
-    computeterminalNs1a0s0!(learnerT, s1, done)
 end
 function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
     pairs = getstateactionpairs!(learnerT, a0, s0)
@@ -58,10 +61,10 @@ function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
             end
             # @show learnerT.Ns1a0s0[sprime][sa]
         end
-
     end
 end
-function computeterminalNs1a0s0!(learnerT::TLeakyIntegrator, s1, done)
+function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegrator,TLeakyIntegratorNoBackLeak},
+                                s1, done)
     if done
         for a in 1:learnerT.na
             for s in 1:learnerT.ns

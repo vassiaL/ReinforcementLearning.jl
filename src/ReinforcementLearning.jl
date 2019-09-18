@@ -20,6 +20,7 @@ function __init__()
 end
 
 include(joinpath("learner", "transitionlearner", "tintegrator.jl"))
+include(joinpath("learner", "transitionlearner", "tleakyintegratornobackleak.jl"))
 include(joinpath("learner", "transitionlearner", "tleakyintegrator.jl"))
 include(joinpath("learner", "transitionlearner", "tvarsmile.jl"))
 include(joinpath("learner", "transitionlearner", "tsmile.jl"))
