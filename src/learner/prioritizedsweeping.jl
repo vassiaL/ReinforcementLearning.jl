@@ -99,13 +99,14 @@ end
 export defaultpolicy
 function addtoqueue!(q, s, p)
     if haskey(q, s)
-        if q[s] > p; q[s] = p; end
+        # if q[s] > p; q[s] = p; end
+        q[s] = p
     else
         enqueue!(q, s, p)
     end
 end
 function processqueue!(learner::SmallBackups)
-    @show learner.queue
+    # @show learner.queue
     while length(learner.queue) > 0 && learner.counter < learner.maxcount
         learner.counter += 1
         s1 = dequeue!(learner.queue)
@@ -147,6 +148,7 @@ end
 """ Original small backups version : RDummy+TIntegrator or RLeaky+TLeaky"""
 function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegratorStateActionReward, <:Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak}}},
                 a0, s0, s1, r, done)
+    dummyshuffledstates = shuffle(collect(1:learner.ns)) # Dummy shuffle to keep same draws from rng as other methods
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
         if learner.Testimate.Nsa[a0, s0] >= learner.M
@@ -167,6 +169,7 @@ end
 function updateq!(learner::Union{SmallBackups{RIntegratorStateActionReward, TT} where TT,
                             SmallBackups{RLeakyIntegratorStateActionReward, <:Union{TParticleFilter, TSmile, TVarSmile}}},
                 a0, s0, s1, r, done)
+    dummyshuffledstates = shuffle(collect(1:learner.ns)) # Dummy shuffle to keep same draws from rng as other methods
     if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
     nextvs, nextps, nextstates = getnextstates(learner, a0, s0)
     learner.Q[a0, s0] = learner.Restimate.R[a0, s0] + learner.γ * sum(nextps .* nextvs)
@@ -244,20 +247,20 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
+    #
+    # println("--------------")
+    # @show a0, s0, s1, a1, r, done
+    # @show a0, s0, sprime, a1, r, done
 
-    println("--------------")
-    @show a0, s0, s1, a1, r, done
-    @show a0, s0, sprime, a1, r, done
-
-    if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
-        for s in 1:learner.ns
-        @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
-        end
-    else
-        for s in 1:learner.ns
-        @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
-        end
-    end
+    # if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
+    #     end
+    # else
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
+    #     end
+    # end
 
     updatet!(learner.Testimate, s0, a0, sprime, done)
     updater!(learner.Restimate, s0, a0, sprime, r)
@@ -285,8 +288,8 @@ function update!(learner::SmallBackups, buffer)
     # -------
 
     processqueue!(learner)
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
 end
 export update!
