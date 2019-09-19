@@ -22,8 +22,8 @@ end
 include(joinpath("learner", "transitionlearner", "tintegrator.jl"))
 include(joinpath("learner", "transitionlearner", "tleakyintegratornobackleak.jl"))
 include(joinpath("learner", "transitionlearner", "tleakyintegrator.jl"))
-include(joinpath("learner", "transitionlearner", "tvarsmile.jl"))
 include(joinpath("learner", "transitionlearner", "tsmile.jl"))
+include(joinpath("learner", "transitionlearner", "tvarsmile.jl"))
 include(joinpath("learner", "transitionlearner", "tparticlefilter.jl"))
 
 include(joinpath("learner", "rewardlearners.jl"))

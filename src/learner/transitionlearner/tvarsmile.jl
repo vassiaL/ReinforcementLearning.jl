@@ -13,6 +13,7 @@ struct TVarSmile
     pcprime::Float64
     Ps1a0s0::Array{Dict{Tuple{Int, Int}, Float64}, 1}
     alphas::Array{Array{Float64,1}, 2}
+    terminalstates::Array{Int,1}
 end
 function TVarSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     pcprime = m/(1. + m)
@@ -20,7 +21,7 @@ function TVarSmile(;ns = 10, na = 4, m = .1, stochasticity = .01)
     [Ps1a0s0[sprime][(a, s)] = 1. /ns for sprime in 1:ns for a in 1:na for s in 1:ns]
     alphas = Array{Array{Float64,1}}(undef, na, ns)
     [alphas[a0, s0] = stochasticity .* ones(ns) for a0 in 1:na for s0 in 1:ns]
-    TVarSmile(ns, na, m, stochasticity, pcprime, Ps1a0s0, alphas)
+    TVarSmile(ns, na, m, stochasticity, pcprime, Ps1a0s0, alphas, Int[])
 end
 export TVarSmile
 function updatet!(learnerT::TVarSmile, s0, a0, s1, done)
@@ -32,8 +33,8 @@ function updatet!(learnerT::TVarSmile, s0, a0, s1, done)
     @. learnerT.alphas[a0, s0] = (1. - γ0) .* learnerT.alphas[a0, s0] +
                                         γ0 .* alpha0 .+ betas
     computePs1a0s0!(learnerT, s0, a0)
-    leakothers!(learnerT, a0, s0)
     computeterminalPs1a0s0!(learnerT, s1, done)
+    leakothers!(learnerT, s0, a0)
 end
 export updatet!
 function calcSgm(αn, α0, s1)
@@ -41,15 +42,22 @@ function calcSgm(αn, α0, s1)
     pn = αn[s1] / sum(αn)
     p0 / pn
 end
-function leakothers!(learnerT::TVarSmile, a0, s0)
-    pairs = getstateactionpairs!(learnerT, a0, s0)
-    for sa in pairs
+function computePs1a0s0!(learnerT::Union{TSmile, TVarSmile}, s0, a0)
+    for s in 1:learnerT.ns
+        learnerT.Ps1a0s0[s][(a0, s0)] = learnerT.alphas[a0, s0][s] / sum(learnerT.alphas[a0, s0])
+    end
+end
+function leakothers!(learnerT::TVarSmile, s0, a0)
+    pairs = getactionstatepairs!(learnerT, s0, a0)
+    for sa in pairs # sa[1] = action, sa[2] = state
         # @show sa
         # @show learnerT.alphas[sa[1], sa[2]]
-        if !all(@. all(learnerT.alphas[sa[1], sa[2], :] == [learnerT.stochasticity .* ones(learnerT.ns)]))
-            # Do not move the "+" to the line below the next!!!
-            learnerT.alphas[sa[1], sa[2]] = learnerT.pcprime * learnerT.stochasticity .* ones(learnerT.ns) +
+        if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminalstates
+            if !all(@. all(learnerT.alphas[sa[1], sa[2], :] == [learnerT.stochasticity .* ones(learnerT.ns)]))
+                learnerT.alphas[sa[1], sa[2]] = learnerT.pcprime * learnerT.stochasticity .* ones(learnerT.ns) + # Do not move the "+" to the line below!!!
                                     (1. - learnerT.pcprime) .* learnerT.alphas[sa[1], sa[2]]
+                computePs1a0s0!(learnerT, sa[2], sa[1])
+            end
         end
         # @show learnerT.alphas[sa[1], sa[2]]
     end

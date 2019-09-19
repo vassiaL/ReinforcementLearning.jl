@@ -9,19 +9,20 @@ struct TLeakyIntegrator
     etaleak::Float64
     Nsa::Array{Float64, 2}
     Ns1a0s0::Array{Dict{Tuple{Int, Int}, Float64}, 1}
+    terminalstates::Array{Int,1}
 end
 function TLeakyIntegrator(; ns = 10, na = 4, etaleak = .9)
     Nsa = zeros(na, ns) .+ ns*eps()
     Ns1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     [Ns1a0s0[sprime][(a, s)] = eps() for sprime in 1:ns for a in 1:na for s in 1:ns]
-    TLeakyIntegrator(ns, na, etaleak, Nsa, Ns1a0s0)
+    TLeakyIntegrator(ns, na, etaleak, Nsa, Ns1a0s0, Int[])
 end
 export TLeakyIntegrator
 """ X[t] = etaleak * X[t-1] + etaleak * I[.] """
 function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     leaka0s0!(learnerT, s0, a0, s1, done)
-    #leakothers!(learnerT, a0, s0)
     computeterminalNs1a0s0!(learnerT, s1, done)
+    leakothers!(learnerT, s0, a0)
 end
 function leaka0s0!(learnerT::Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak},
                 s0, a0, s1, done)
@@ -38,43 +39,51 @@ function leaka0s0!(learnerT::Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak}
         learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
     end
 end
-function leakothers!(learnerT::TLeakyIntegrator, a0, s0)
-    pairs = getstateactionpairs!(learnerT, a0, s0)
-    for sa in pairs
-        # @show sa
-        # @show learnerT.Nsa[sa[1], sa[2]]
-        # Bound it to avoid numerical problems
-        if learnerT.Nsa[sa[1], sa[2]] < eps()^12
-            learnerT.Nsa[sa[1], sa[2]] = eps()^12
-        else
-            learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
-        end
-        # @show learnerT.Nsa[sa[1], sa[2]]
-        nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
-        for sprime in nextstates
-            # @show sprime
-            # @show learnerT.Ns1a0s0[sprime][sa]
-            if learnerT.Ns1a0s0[sprime][sa] < eps()^12
-                learnerT.Ns1a0s0[sprime][sa] = eps()^12
+function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
+    pairs = getactionstatepairs!(learnerT, s0, a0)
+    for sa in pairs # sa[1] = action, sa[2] = state
+        @show sa
+        @show learnerT.Nsa[sa[1], sa[2]]
+        @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminalstates
+            # Bound it to avoid numerical problems
+            if learnerT.Nsa[sa[1], sa[2]] < eps()^12
+                learnerT.Nsa[sa[1], sa[2]] = eps()^12
             else
-                learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
+                learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
             end
-            # @show learnerT.Ns1a0s0[sprime][sa]
+            # @show learnerT.Nsa[sa[1], sa[2]]
+            nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
+            for sprime in nextstates
+                # @show sprime
+                # @show learnerT.Ns1a0s0[sprime][sa]
+                if learnerT.Ns1a0s0[sprime][sa] < eps()^12
+                    learnerT.Ns1a0s0[sprime][sa] = eps()^12
+                else
+                    learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
+                end
+                # @show learnerT.Ns1a0s0[sprime][sa]
+            end
         end
+        @show learnerT.Nsa[sa[1], sa[2]]
+        @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
     end
 end
 function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegrator,TLeakyIntegratorNoBackLeak},
                                 s1, done)
     if done
-        for a in 1:learnerT.na
-            for s in 1:learnerT.ns
-                if s == s1
-                    learnerT.Nsa[a, s1] = 1.
-                    learnerT.Ns1a0s0[s][(a, s1)] = 1.
-                else
-                    learnerT.Ns1a0s0[s][(a, s1)] = 0.
+        if !in(s1, learnerT.terminalstates)
+            push!(learnerT.terminalstates, s1)
+            for a in 1:learnerT.na
+                for s in 1:learnerT.ns
+                    if s == s1
+                        learnerT.Nsa[a, s1] = 1.
+                        learnerT.Ns1a0s0[s][(a, s1)] = 1.
+                    else
+                        learnerT.Ns1a0s0[s][(a, s1)] = 0.
+                    end
+                    #@show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
                 end
-                #@show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
             end
         end
     end

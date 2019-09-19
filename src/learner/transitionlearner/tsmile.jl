@@ -58,8 +58,3 @@ function find_γ0(betas, alphas, B)
     end
     γ0
 end
-function computePs1a0s0!(learnerT::Union{TSmile, TVarSmile}, s0, a0)
-    for s in 1:learnerT.ns
-        learnerT.Ps1a0s0[s][(a0, s0)] = learnerT.alphas[a0, s0][s] / sum(learnerT.alphas[a0, s0])
-    end
-end
