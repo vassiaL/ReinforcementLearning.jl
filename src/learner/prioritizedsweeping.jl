@@ -106,13 +106,13 @@ function addtoqueue!(q, s, p)
     end
 end
 function processqueue!(learner::SmallBackups)
-    @show learner.queue
+    # @show learner.queue
     while length(learner.queue) > 0 && learner.counter < learner.maxcount
         learner.counter += 1
         s1 = dequeue!(learner.queue)
-        @show s1
+        # @show s1
         ΔV = learner.V[s1] - learner.U[s1]
-        @show learner.V[s1], learner.U[s1], ΔV
+        # @show learner.V[s1], learner.U[s1], ΔV
         learner.U[s1] = learner.V[s1]
         processqueueupdateq!(learner, s1, ΔV)
     end
@@ -137,10 +137,10 @@ function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TParticleFilter,
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
-            @show ((a0, s0), n)
+            # @show ((a0, s0), n)
             if learner.Testimate.Ps1a0s0[s1][a0, s0] > 0.
                 learner.Q[a0, s0] += learner.γ * ΔV * n
-                @show learner.Q[a0, s0]
+                # @show learner.Q[a0, s0]
                 updateV!(learner, s0)
             end
         end
@@ -192,10 +192,11 @@ function updateq!(learner::SmallBackups{RIntegratorNextStateReward, TT} where TT
         for a in 1:learner.na
             if learner.Q[a, s] == Inf64; learner.Q[a, s] = 0.; end
             nextvs, nextps, nextstates = getnextstates(learner, a, s)
+            # @show nextps
             Rbar = [learner.Restimate.R[s] for s in nextstates]
             # @show Rbar
             learner.Q[a, s] = sum(nextps.* (Rbar + learner.γ * nextvs))
-            @show a, s, learner.Q[a, s]
+            # @show a, s, learner.Q[a, s]
         end
         updateV!(learner, s)
     end
@@ -222,9 +223,9 @@ end
 function updateV!(learner::SmallBackups, s)
     learner.V[s] = maximumbelowInf(learner.Q[:, s])
     p = abs(learner.V[s] - learner.U[s])
-    @show learner.V[s], learner.U[s], p
+    # @show learner.V[s], learner.U[s], p
     if p > learner.minpriority; addtoqueue!(learner.queue, s, p); end
-    @show learner.queue
+    # @show learner.queue
 end
 # function updateqterminal!(learner::SmallBackups, sprime, done)
 #     if done
@@ -249,49 +250,49 @@ function update!(learner::SmallBackups, buffer)
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
     # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    println("--------------")
-    @show a0, s0, s1, a1, r, done
-    @show a0, s0, sprime, a1, r, done
-    println("Before update:")
-    if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
-        for s in 1:learner.ns
-        @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
-        end
-    else
-        for s in 1:learner.ns
-        @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
-        end
-        @show learner.Testimate.Nsa[a0, s0]
-    end
+    # println("--------------")
+    # @show a0, s0, s1, a1, r, done
+    # @show a0, s0, sprime, a1, r, done
+    # println("Before update:")
+    # if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
+    #     end
+    # else
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
+    #     end
+    #     @show learner.Testimate.Nsa[a0, s0]
+    # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     updatet!(learner.Testimate, s0, a0, sprime, done)
-    # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    println("After update:")
-    if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
-        for s in 1:learner.ns
-        @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
-        end
-    else
-        for s in 1:learner.ns
-        @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
-        end
-        @show learner.Testimate.Nsa[a0, s0]
-    end
+    # # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # println("After update:")
+    # if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
+    #     end
+    # else
+    #     for s in 1:learner.ns
+    #     @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
+    #     end
+    #     @show learner.Testimate.Nsa[a0, s0]
+    # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     updater!(learner.Restimate, s0, a0, sprime, r)
-    # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    @show learner.Restimate.R
-    println("Before update:")
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # @show learner.Restimate.R
+    # println("Before update:")
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     updateq!(learner, a0, s0, sprime, r, done)
-    # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    println("After update:")
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # println("After update:")
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
     # # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # ------- When updateq! was done for only a0, s0:
     #updateV!(learner, s0)
@@ -304,11 +305,11 @@ function update!(learner::SmallBackups, buffer)
     # updateqterminal!(learner, sprime, done)
     # -------
     processqueue!(learner)
-    # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    println("Final:")
-    for s in 1:size(learner.Q,2)
-           @show learner.Q[:, s]
-    end
+    # # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # println("Final:")
+    # for s in 1:size(learner.Q,2)
+    #        @show learner.Q[:, s]
+    # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end
 export update!

@@ -121,8 +121,8 @@ end
 function leakothers!(learnerT::TParticleFilter, s0, a0)
     pairs = getactionstatepairs!(learnerT, s0, a0)
     for sa in pairs # sa[1] = action, sa[2] = state
-        @show sa
-        @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        # @show sa
+        # @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
         if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminalstates
             if !all(@. all(learnerT.counts[sa[1], sa[2], :] == [zeros(learnerT.ns)]))
                 for i in 1:learnerT.nparticles
@@ -137,7 +137,7 @@ function leakothers!(learnerT::TParticleFilter, s0, a0)
                 computePs1a0s0!(learnerT, sa[2], sa[1])
             end
         end
-        @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        # @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
     end
 end
 function computeterminalPs1a0s0!(learnerT::Union{TParticleFilter, TVarSmile}, s1, done)

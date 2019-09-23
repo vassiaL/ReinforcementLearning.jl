@@ -42,9 +42,9 @@ end
 function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
     pairs = getactionstatepairs!(learnerT, s0, a0)
     for sa in pairs # sa[1] = action, sa[2] = state
-        @show sa
-        @show learnerT.Nsa[sa[1], sa[2]]
-        @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        # @show sa
+        # @show learnerT.Nsa[sa[1], sa[2]]
+        # @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
         if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminalstates
             # Bound it to avoid numerical problems
             if learnerT.Nsa[sa[1], sa[2]] < eps()^12
@@ -65,8 +65,8 @@ function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
                 # @show learnerT.Ns1a0s0[sprime][sa]
             end
         end
-        @show learnerT.Nsa[sa[1], sa[2]]
-        @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        # @show learnerT.Nsa[sa[1], sa[2]]
+        # @show [learnerT.Ns1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
     end
 end
 function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegrator,TLeakyIntegratorNoBackLeak},

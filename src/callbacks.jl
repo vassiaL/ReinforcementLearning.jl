@@ -498,7 +498,7 @@ function callback!(p::RecordSwitches, rlsetup, sraw, a, r, done)
     # If there was a switch push an empty array
     for a in 1:rlsetup.learner.na
         for s in 1:rlsetup.learner.ns
-            if rlsetup.environment.switchflag[a,s]
+            if rlsetup.environment.switchflag[a, s]
                 # @show LinearIndices(p.stateactionvisits)[a, s]
                 # @show a, s
                 push!(p.stateactionvisits[a, s], [])
