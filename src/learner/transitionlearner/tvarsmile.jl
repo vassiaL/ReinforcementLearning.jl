@@ -53,12 +53,13 @@ function leakothers!(learnerT::TVarSmile, s0, a0)
         # @show sa
         # @show learnerT.alphas[sa[1], sa[2]]
         if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminalstates
-            if !all(@. all(learnerT.alphas[sa[1], sa[2], :] == [learnerT.stochasticity .* ones(learnerT.ns)]))
+            if !all(learnerT.alphas[sa[1], sa[2]] .== learnerT.stochasticity)
+            #if !all(@. all(learnerT.alphas[sa[1], sa[2], :] == [learnerT.stochasticity .* ones(learnerT.ns)]))
                 learnerT.alphas[sa[1], sa[2]] = learnerT.pcprime * learnerT.stochasticity .* ones(learnerT.ns) + # Do not move the "+" to the line below!!!
                                     (1. - learnerT.pcprime) .* learnerT.alphas[sa[1], sa[2]]
                 computePs1a0s0!(learnerT, sa[2], sa[1])
+                # @show sa, learnerT.alphas[sa[1], sa[2]]
             end
         end
-        # @show learnerT.alphas[sa[1], sa[2]]
     end
 end

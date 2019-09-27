@@ -85,7 +85,7 @@ export computeproposaldistribution
 function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)
     for i in 1:learnerT.nparticles
         if learnerT.particlesswitch[a0, s0, i] # if new hidden state
-            learnerT.counts[a0, s0, i] =  zeros(learnerT.ns)
+            learnerT.counts[a0, s0, i] = zeros(learnerT.ns)
         end
         learnerT.counts[a0, s0, i][s1] += 1 # Last hidden state. +1 for s'
     end
@@ -134,6 +134,8 @@ function leakothers!(learnerT::TParticleFilter, s0, a0)
                     end
                     # @show learnerT.counts[sa[1], sa[2], i]
                 end
+                #Neff = 1. /sum(learnerT.weights[sa[1], sa[2], :] .^2)
+                #if Neff <= learnerT.Neffthrs; resample!(learnerT, sa[2], sa[1]); end
                 computePs1a0s0!(learnerT, sa[2], sa[1])
             end
         end

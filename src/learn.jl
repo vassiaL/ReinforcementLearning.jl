@@ -50,6 +50,7 @@ function learn!(rlsetup)
     # @show a
     # t = 0
     # start = time()
+    #plotenv(rlsetup.environment)
     while true
         # t+=1
         sraw, a, r, done = step!(rlsetup, a)
@@ -57,6 +58,7 @@ function learn!(rlsetup)
         for callback in rlsetup.callbacks
             callback!(callback, rlsetup, sraw, a, r, done)
         end
+        #plotenv(rlsetup.environment)
         # if t == 100
         #     elapsedtime = time() - start
         #     @show elapsedtime

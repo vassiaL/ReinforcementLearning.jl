@@ -192,7 +192,7 @@ function updateq!(learner::SmallBackups{RIntegratorNextStateReward, TT} where TT
         for a in 1:learner.na
             if learner.Q[a, s] == Inf64; learner.Q[a, s] = 0.; end
             nextvs, nextps, nextstates = getnextstates(learner, a, s)
-            # @show nextps
+            #@show nextps
             Rbar = [learner.Restimate.R[s] for s in nextstates]
             # @show Rbar
             learner.Q[a, s] = sum(nextps.* (Rbar + learner.γ * nextvs))
@@ -249,10 +249,24 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
+
+    if done
+        @show sprime
+    end
     # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # println("--------------")
     # @show a0, s0, s1, a1, r, done
     # @show a0, s0, sprime, a1, r, done
+    # if done
+    #     println(" *************************************** ")
+    #     println(" **************** DONE!!! ************** ")
+    #     println(" *************************************** ")
+    #     @show learner.Restimate.R
+    #     println("Before update:")
+    #     for s in 1:size(learner.Q,2)
+    #            @show learner.Q[:, s]
+    #     end
+    # end
     # println("Before update:")
     # if in(:Ps1a0s0, fieldnames(typeof(learner.Testimate)))
     #     for s in 1:learner.ns
@@ -293,7 +307,14 @@ function update!(learner::SmallBackups, buffer)
     # for s in 1:size(learner.Q,2)
     #        @show learner.Q[:, s]
     # end
+    # if done
+    #     println("After update:")
+    #     for s in 1:size(learner.Q,2)
+    #            @show learner.Q[:, s]
+    #     end
+    # end
     # # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     # ------- When updateq! was done for only a0, s0:
     #updateV!(learner, s0)
         #learner.V[s0] = maximumbelowInf(learner.Q[:, s0])
