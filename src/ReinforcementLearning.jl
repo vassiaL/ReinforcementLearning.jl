@@ -18,6 +18,10 @@ function __init__()
     togpu(x) = CuArrays.adapt(CuArrays.CuArray, x)
     end
 end
+include(joinpath("learner", "transitionlearner", "tgeneric.jl"))
+include(joinpath("learner", "transitionlearner", "tleakyintegratorjump.jl"))
+include(joinpath("learner", "transitionlearner", "tparticlefilterjump.jl"))
+
 
 include(joinpath("learner", "transitionlearner", "tintegrator.jl"))
 include(joinpath("learner", "transitionlearner", "tleakyintegratornobackleak.jl"))

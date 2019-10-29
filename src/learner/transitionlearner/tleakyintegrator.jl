@@ -3,7 +3,7 @@ TLeakyIntegrator
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
 """
-struct TLeakyIntegrator
+struct TLeakyIntegrator <: TNs1a0s0
     ns::Int
     na::Int
     etaleak::Float64
@@ -25,8 +25,10 @@ function updatet!(learnerT::TLeakyIntegrator, s0, a0, s1, done)
     computeterminalNs1a0s0!(learnerT, s1, done)
     leakothers!(learnerT, s0, a0)
 end
-function leaka0s0!(learnerT::Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak},
-                s0, a0, s1, done)
+function leaka0s0!(learnerT::Union{TLeakyIntegrator,
+                    TLeakyIntegratorNoBackLeak,
+                    TLeakyIntegratorJump},
+                    s0, a0, s1, done)
     learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
     learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
     learnerT.Nsa[a0, s0] += (1. - learnerT.etaleak) * learnerT.ns * learnerT.lowerbound # Bound it
@@ -62,7 +64,9 @@ function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
         end
     end
 end
-function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegrator,TLeakyIntegratorNoBackLeak},
+function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegrator,
+                                TLeakyIntegratorNoBackLeak,
+                                TLeakyIntegratorJump},
                                 s1, done)
     if done
         if !in(s1, learnerT.terminalstates)

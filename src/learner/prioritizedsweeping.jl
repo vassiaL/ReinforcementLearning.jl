@@ -70,6 +70,14 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     elseif Testimatetype == TVarSmile
         Testimate = TVarSmile(ns = ns, na = na, m = msmile,
                             stochasticity = stochasticity)
+    elseif Testimatetype == TParticleFilterJump
+        Testimate = TParticleFilterJump(ns = ns, na = na, nparticles = nparticles,
+                            changeprobability = changeprobability,
+                            stochasticity = stochasticity,
+                            seed = seedlearner)
+    elseif Testimatetype == TLeakyIntegratorJump
+        Testimate = TLeakyIntegratorJump(ns = ns, na = na, etaleak = etaleak)
+        M = M > etaleak ? etaleak : M
     end
 
     if Restimatetype == RIntegratorStateActionReward
@@ -119,7 +127,7 @@ function processqueue!(learner::SmallBackups)
     learner.counter = 0
 end
  """ For Testimate that uses counts (Ns1a0s0) """
-function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TIntegrator, TLeakyIntegrator, TLeakyIntegratorNoBackLeak}} where TR,
+function processqueueupdateq!(learner::SmallBackups{TR, TT} where {TR, TT<:TNs1a0s0},
                             s1, ΔV)
     if length(learner.Testimate.Ns1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ns1a0s0[s1]
@@ -133,7 +141,7 @@ function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TIntegrator, TLe
     end
 end
 """ For Testimate that uses probabilites (Ps1a0s0) """
-function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TParticleFilter, TSmile, TVarSmile}} where TR,
+function processqueueupdateq!(learner::SmallBackups{TR, TT} where {TR, TT<:TPs1a0s0},
                             s1, ΔV)
     if length(learner.Testimate.Ps1a0s0[s1]) > 0
         for ((a0, s0), n) in learner.Testimate.Ps1a0s0[s1]
@@ -147,8 +155,9 @@ function processqueueupdateq!(learner::SmallBackups{TR, <:Union{TParticleFilter,
     end
 end
 """ Original small backups version : RDummy+TIntegrator or RLeaky+TLeaky"""
-function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, SmallBackups{RLeakyIntegratorStateActionReward, <:Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak}}},
-                a0, s0, s1, r, done)
+function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator},
+            SmallBackups{RLeakyIntegratorStateActionReward, <:Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak, TLeakyIntegratorJump}}},
+            a0, s0, s1, r, done)
     dummyshuffledstates = shuffle(collect(1:learner.ns)) # Dummy shuffle to keep same draws from rng as other methods
     if done
         if learner.Q[a0, s0] == Inf; learner.Q[a0, s0] = 0; end
@@ -168,7 +177,7 @@ function updateq!(learner::Union{SmallBackups{REstimateDummy, TIntegrator}, Smal
 end
 """ Full backup  -- R[s,a]"""
 function updateq!(learner::Union{SmallBackups{RIntegratorStateActionReward, TT} where TT,
-                            SmallBackups{RLeakyIntegratorStateActionReward, <:Union{TParticleFilter, TSmile, TVarSmile}}},
+                            SmallBackups{RLeakyIntegratorStateActionReward, TT} where {TT<:TPs1a0s0}},
                 a0, s0, s1, r, done)
     dummyshuffledstates = shuffle(collect(1:learner.ns)) # Dummy shuffle to keep same draws from rng as other methods
     if learner.Q[a0, s0] == Inf64; learner.Q[a0, s0] = 0.; end
@@ -202,7 +211,7 @@ function updateq!(learner::SmallBackups{RIntegratorNextStateReward, TT} where TT
     end
 end
 """ Get next states and probabilities -- Ps1a0s0 """
-function getnextstates(learner::SmallBackups{TR, <:Union{TParticleFilter, TSmile, TVarSmile}} where TR, a0, s0)
+function getnextstates(learner::SmallBackups{TR, TT} where {TR, TT<:TPs1a0s0}, a0, s0)
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ps1a0s0[s],(a0,s0))]
     nextvs = [learner.U[s] for s in nextstates]
     # @show nextvs
@@ -211,7 +220,7 @@ function getnextstates(learner::SmallBackups{TR, <:Union{TParticleFilter, TSmile
     nextvs, nextps, nextstates
 end
 """ Get next states and probabilities -- Ns1a0s0 """
-function getnextstates(learner::SmallBackups{TR, <:Union{TLeakyIntegrator, TLeakyIntegratorNoBackLeak}} where TR, a0, s0)
+function getnextstates(learner::SmallBackups{TR, TT} where {TR, TT<:TNs1a0s0}, a0, s0)
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
     # @show nextstates
     nextvs = [learner.U[s] for s in nextstates]
@@ -249,10 +258,9 @@ function update!(learner::SmallBackups, buffer)
     r = buffer.rewards[1]
     done = buffer.done[1]
     sprime = done ? buffer.terminalstates[1] : s1
-
-    if done
-        @show sprime
-    end
+    # if done
+    #     @show sprime
+    # end
     # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # println("--------------")
     # @show a0, s0, s1, a1, r, done

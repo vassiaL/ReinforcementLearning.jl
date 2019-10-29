@@ -3,7 +3,7 @@ TIntegrator
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
 """
-struct TIntegrator
+struct TIntegrator <: TNs1a0s0
     ns::Int
     na::Int
     Nsa::Array{Int, 2}

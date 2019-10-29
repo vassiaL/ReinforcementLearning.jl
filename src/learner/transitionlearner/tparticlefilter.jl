@@ -4,7 +4,7 @@ TParticleFilter
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
 """
-struct TParticleFilter
+struct TParticleFilter <: TPs1a0s0
     ns::Int
     na::Int
     nparticles::Int # Per state and action
@@ -49,7 +49,7 @@ function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
     leakothers!(learnerT, s0, a0)
 end
 export updatet!
-function computestayterms(learnerT::TParticleFilter, s0, a0, s1)
+function computestayterms(learnerT::Union{TParticleFilter,TParticleFilterJump}, s0, a0, s1)
     stayterms = zeros(learnerT.nparticles)
     for i in 1:learnerT.nparticles
         stayterms[i] = (learnerT.stochasticity + learnerT.counts[a0, s0, i][s1])
@@ -57,8 +57,8 @@ function computestayterms(learnerT::TParticleFilter, s0, a0, s1)
     end #switchterm = 1. / learnerT.ns
     stayterms#, switchterm
 end
-export computestayterms!
-function getweights!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
+export computestayterms
+function getweights!(learnerT::Union{TParticleFilter,TParticleFilterJump}, s0, a0, stayterms, switchterm)
     for i in 1:learnerT.nparticles #firstratio = B(s + a(h_t-1)') / B(s + a(h_t-1)). secondratio = B(s + a(h_t=h_t-1 + 1)) / B(s)
         particleweightupdate = (1. - learnerT.changeprobability) * stayterms[i]
         particleweightupdate += learnerT.changeprobability * switchterm
@@ -67,7 +67,8 @@ function getweights!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
     learnerT.weights[a0, s0, :] ./= sum(learnerT.weights[a0, s0, :]) # Normalize
 end
 export getweights!
-function sampleparticles!(learnerT::TParticleFilter, s0, a0, stayterms, switchterm)
+function sampleparticles!(learnerT::Union{TParticleFilter, TParticleFilterJump},
+                        s0, a0, stayterms, switchterm)
     for i in 1:learnerT.nparticles
         particlestayprobability = computeproposaldistribution(learnerT, stayterms[i], switchterm)
         r = rand(learnerT.rng) # Draw and possibly update
@@ -77,7 +78,8 @@ function sampleparticles!(learnerT::TParticleFilter, s0, a0, stayterms, switchte
     end
 end
 export sampleparticles!
-function computeproposaldistribution(learnerT::TParticleFilter, istayterm, switchterm)
+function computeproposaldistribution(learnerT::Union{TParticleFilter, TParticleFilterJump},
+                                    istayterm, switchterm)
     particlestayprobability = 1. /(1. + ((learnerT.changeprobability * switchterm) /
                                 ((1. - learnerT.changeprobability) * istayterm)))
 end
@@ -91,7 +93,7 @@ function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)
     end
 end
 export updatecounts!
-function resample!(learnerT::TParticleFilter, s0, a0)
+function resample!(learnerT::Union{TParticleFilter, TParticleFilterJump}, s0, a0)
     tempcopyparticleweights = deepcopy(learnerT.weights[a0, s0, :])
     d = Categorical(tempcopyparticleweights)
     tempcopyparticlesswitch = copy(learnerT.particlesswitch[a0, s0, :])
@@ -104,7 +106,7 @@ function resample!(learnerT::TParticleFilter, s0, a0)
     end
 end
 export resample!
-function computePs1a0s0!(learnerT::TParticleFilter, s0, a0)
+function computePs1a0s0!(learnerT::Union{TParticleFilter,TParticleFilterJump}, s0, a0)
     thetasweighted = zeros(learnerT.nparticles, learnerT.ns)
     for i in 1:learnerT.nparticles
         # thetas = (learnerT.stochasticity .+ learnerT.counts[a0, s0, i])/sum(learnerT.stochasticity .+ learnerT.counts[a0, s0, i])
@@ -142,7 +144,7 @@ function leakothers!(learnerT::TParticleFilter, s0, a0)
         # @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
     end
 end
-function computeterminalPs1a0s0!(learnerT::Union{TParticleFilter, TVarSmile}, s1, done)
+function computeterminalPs1a0s0!(learnerT::TPs1a0s0, s1, done)
     if done
         if !in(s1, learnerT.terminalstates)
             push!(learnerT.terminalstates, s1)
@@ -164,18 +166,18 @@ function getactionstatepairs!(learnerT, s0, a0)
     deleteat!(pairs, findall([x == (a0, s0) for x in pairs])[1])
     pairs
 end
-function defaultpolicy(learner::Union{TIntegrator, TLeakyIntegrator, TLeakyIntegratorNoBackLeak, TParticleFilter, TSmile, TVarSmile},
+function defaultpolicy(learner::Union{TPs1a0s0, TNs1a0s0},
                         actionspace, buffer)
     RandomPolicy(actionspace)
 end
-function update!(learner::Union{TIntegrator, TLeakyIntegrator, TLeakyIntegratorNoBackLeak, TParticleFilter, TSmile, TVarSmile},
+function update!(learner::Union{TPs1a0s0, TNs1a0s0},
                 buffer)
     a0 = buffer.actions[1]
-    a1 = buffer.actions[2]
     s0 = buffer.states[1]
     s1 = buffer.states[2]
     r = buffer.rewards[1]
     done = buffer.done[1]
-    updatet!(learner, s0, a0, s1, done)
+    sprime = done ? buffer.terminalstates[1] : s1
+    updatet!(learner, s0, a0, sprime, done)
 end
 export update!

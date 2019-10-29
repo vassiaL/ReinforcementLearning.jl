@@ -5,7 +5,7 @@ TSmile
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
 """
-struct TSmile
+struct TSmile <: TPs1a0s0
     ns::Int
     na::Int
     m::Float64
