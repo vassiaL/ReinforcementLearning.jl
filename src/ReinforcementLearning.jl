@@ -1,7 +1,7 @@
 module ReinforcementLearning
 
-using DataStructures, Parameters, SparseArrays, LinearAlgebra, Distributed,
-Statistics, Dates, Requires, StatsBase
+using DataStructures, Parameters, SparseArrays, LinearAlgebra, Distributed
+using Statistics, Dates, Requires, StatsBase
 import Statistics: mean
 import ReinforcementLearningBase: interact!, getstate, reset!, plotenv,
 actionspace, sample
@@ -50,7 +50,7 @@ include(joinpath("learner", "tdlearning.jl"))
 include(joinpath("learner", "prioritizedsweeping.jl"))
 #include(joinpath("learner", "prioritizedsweepingbonus.jl"))
 include(joinpath("learner", "deepactorcritic.jl"))
-include(joinpath("learner", "dqn.jl"))
+# include(joinpath("learner", "dqn.jl"))
 include("forced.jl")
 include("rlsetup.jl")
 include("learn.jl")

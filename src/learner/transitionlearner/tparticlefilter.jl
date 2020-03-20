@@ -64,6 +64,9 @@ function getweights!(learnerT::Union{TParticleFilter,TParticleFilterJump}, s0, a
         particleweightupdate += learnerT.changeprobability * switchterm
         learnerT.weights[a0, s0, i] *= particleweightupdate
     end
+    # if any(isnan.(learnerT.weights[a0, s0, :]))
+    #     println("Before norm: NAN!!!")
+    # end
     learnerT.weights[a0, s0, :] ./= sum(learnerT.weights[a0, s0, :]) # Normalize
 end
 export getweights!
@@ -82,6 +85,7 @@ function computeproposaldistribution(learnerT::Union{TParticleFilter, TParticleF
                                     istayterm, switchterm)
     particlestayprobability = 1. /(1. + ((learnerT.changeprobability * switchterm) /
                                 ((1. - learnerT.changeprobability) * istayterm)))
+    # @show particlestayprobability
 end
 export computeproposaldistribution
 function updatecounts!(learnerT::TParticleFilter, s0, a0, s1)

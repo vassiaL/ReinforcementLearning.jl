@@ -51,6 +51,7 @@ function updatecounts!(learnerT::TParticleFilterJump, s0, a0, s1)
         if !learnerT.particlesswitch[a0, s0, i] # if it is not a surprise trial: Integrate
             learnerT.counts[a0, s0, i][s1] += 1 # +1 for s'
         end
+        @show learnerT.counts[a0, s0, i]
     end
 end
 export updatecounts!

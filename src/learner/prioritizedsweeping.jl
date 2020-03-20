@@ -48,7 +48,8 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     Restimatetype = RIntegratorStateActionReward,
     Testimatetype = TIntegrator,
     queue = PriorityQueue(Base.Order.Reverse, zip(Int[], Float64[])),
-    nparticles = 6, changeprobability = .01, stochasticity = .01, etaleak = .9,
+    nparticles = 6, changeprobability = .01, stochasticity = .01,
+    etaleak = .9, etaleakbckground = etaleak,
     seedlearner = 3, msmile = 0.1)
 
     if Testimatetype == TIntegrator
@@ -59,7 +60,8 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
                                     stochasticity = stochasticity,
                                     seed = seedlearner)
     elseif Testimatetype == TLeakyIntegrator
-        Testimate = TLeakyIntegrator(ns = ns, na = na, etaleak = etaleak)
+        Testimate = TLeakyIntegrator(ns = ns, na = na, etaleak = etaleak,
+                                    etaleakbckground = etaleakbckground)
         M = M > etaleak ? etaleak : M
     elseif Testimatetype == TLeakyIntegratorNoBackLeak
         Testimate = TLeakyIntegratorNoBackLeak(ns = ns, na = na, etaleak = etaleak)
@@ -222,7 +224,6 @@ end
 """ Get next states and probabilities -- Ns1a0s0 """
 function getnextstates(learner::SmallBackups{TR, TT} where {TR, TT<:TNs1a0s0}, a0, s0)
     nextstates = [s for s in 1:learner.ns if haskey(learner.Testimate.Ns1a0s0[s],(a0,s0))]
-    # @show nextstates
     nextvs = [learner.U[s] for s in nextstates]
     # @show nextvs
     nextps = [learner.Testimate.Ns1a0s0[s][a0, s0]/learner.Testimate.Nsa[a0, s0] for s in nextstates]

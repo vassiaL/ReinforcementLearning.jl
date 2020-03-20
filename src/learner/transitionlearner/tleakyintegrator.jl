@@ -7,16 +7,18 @@ struct TLeakyIntegrator <: TNs1a0s0
     ns::Int
     na::Int
     etaleak::Float64
+    etaleakbckground::Float64
     lowerbound::Float64
     Nsa::Array{Float64, 2}
     Ns1a0s0::Array{Dict{Tuple{Int, Int}, Float64}, 1}
     terminalstates::Array{Int,1}
 end
-function TLeakyIntegrator(; ns = 10, na = 4, etaleak = .9, lowerbound = eps())
+function TLeakyIntegrator(; ns = 10, na = 4, etaleak = .9,
+                            etaleakbckground = etaleak, lowerbound = eps())
     Nsa = zeros(na, ns) .+ ns*eps()
     Ns1a0s0 = [Dict{Tuple{Int, Int}, Float64}() for _ in 1:ns]
     [Ns1a0s0[sprime][(a, s)] = eps() for sprime in 1:ns for a in 1:na for s in 1:ns]
-    TLeakyIntegrator(ns, na, etaleak, lowerbound, Nsa, Ns1a0s0, Int[])
+    TLeakyIntegrator(ns, na, etaleak, etaleakbckground, lowerbound, Nsa, Ns1a0s0, Int[])
 end
 export TLeakyIntegrator
 """ X[t] = etaleak * X[t-1] + etaleak * I[.] """
@@ -41,6 +43,7 @@ function leaka0s0!(learnerT::Union{TLeakyIntegrator,
     if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
         learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
     else
+        # println("i m here")
         learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
         learnerT.Ns1a0s0[s1][(a0, s0)] += (1. - learnerT.etaleak) * learnerT.lowerbound # Bound it
     end
@@ -51,13 +54,13 @@ function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
         # @show sa
         if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminal states
             if learnerT.Nsa[sa[1], sa[2]] != learnerT.ns * learnerT.lowerbound
-                learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleak
-                learnerT.Nsa[sa[1], sa[2]] += (1. - learnerT.etaleak) * learnerT.ns * learnerT.lowerbound # Bound it
+                learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleakbckground
+                learnerT.Nsa[sa[1], sa[2]] += (1. - learnerT.etaleakbckground) * learnerT.ns * learnerT.lowerbound # Bound it
                 # @show sa, learnerT.Nsa[sa[1], sa[2]]
                 nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
                 for sprime in nextstates
-                    learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleak # Discount all outgoing transitions
-                    learnerT.Ns1a0s0[sprime][sa] += (1. - learnerT.etaleak) * learnerT.lowerbound # Bound it
+                    learnerT.Ns1a0s0[sprime][sa] *= learnerT.etaleakbckground # Discount all outgoing transitions
+                    learnerT.Ns1a0s0[sprime][sa] += (1. - learnerT.etaleakbckground) * learnerT.lowerbound # Bound it
                     # @show sprime, learnerT.Ns1a0s0[sprime][sa]
                 end
             end

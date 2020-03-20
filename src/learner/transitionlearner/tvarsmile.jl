@@ -27,6 +27,7 @@ export TVarSmile
 function updatet!(learnerT::TVarSmile, s0, a0, s1, done)
     alpha0 = learnerT.stochasticity .* ones(learnerT.ns)
     Sgm = calcSgm(learnerT.alphas[a0, s0], alpha0, s1)
+    # @show Sgm
     γ0 = learnerT.m * Sgm/(1. + learnerT.m * Sgm)
     betas = zeros(learnerT.ns)
     betas[s1] += 1.
