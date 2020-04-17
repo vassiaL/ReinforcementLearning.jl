@@ -1,3 +1,5 @@
+# using nonstationaryrl
+# using PyPlot
 @inline function step!(rlsetup, a)
     @unpack learner, policy, buffer, preprocessor, environment, fillbuffer = rlsetup
     s0, r0, done0 = interact!(environment, a)
@@ -49,21 +51,31 @@ function learn!(rlsetup)
     a = firststateaction!(rlsetup) #TODO: callbacks don't see first state action
     # @show a
     # t = 0
+    # tplot = 0
     # start = time()
-    #plotenv(rlsetup.environment)
+    # plotenv(rlsetup.environment)
+    # fig = figure(); ax = gca()
+    # v = nonstationaryrl.plotvalues(rlsetup, ax, sizeofmaze=(13,13))
     while true
         # t+=1
+        # tplot+=1
+        # @show t
         sraw, a, r, done = step!(rlsetup, a)
         if rlsetup.islearning; update!(learner, buffer); end
         for callback in rlsetup.callbacks
             callback!(callback, rlsetup, sraw, a, r, done)
         end
-        #plotenv(rlsetup.environment)
+        # plotenv(rlsetup.environment)
         # if t == 100
-        #     elapsedtime = time() - start
-        #     @show elapsedtime
-        #     t = 0
-        #     start = time()
+        #      elapsedtime = time() - start
+        #      @show elapsedtime
+        #      t = 0
+        #      start = time()
+        # end
+        # if tplot == 100
+        #     v = nonstationaryrl.plotvalues(rlsetup, ax, sizeofmaze=(13,13))
+        #     sleep(0.01)
+        #      tplot = 0
         # end
         if isbreak!(rlsetup.stoppingcriterion, sraw, a, r, done); break; end
     end

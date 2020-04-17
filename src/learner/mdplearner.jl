@@ -33,17 +33,17 @@ function argmaxvalue(mdplearner, state)
     for a in 1:mdplearner.mdp.actionspace.n
         v = mdplearner.mdp.reward[a, state] + mdplearner.γ *
                 dot(mdplearner.mdp.trans_probs[a, state], mdplearner.values)
-        if vmax < v 
+        if vmax < v
             vmax = v
             amax = a
         end
     end
     amax, vmax
 end
-        
+
 function geteffectivetandr(mdplearner)
     trans_probs = []
-    reward = zeros(mdplearner.mdp.observationspace.n)
+    reward_immediate = zeros(mdplearner.mdp.observationspace.n)
     for state = 1:mdplearner.mdp.observationspace.n
         if size(mdplearner.mdp.trans_probs, 2) < state ||
             mdplearner.mdp.isterminal[state] == 1
@@ -51,9 +51,16 @@ function geteffectivetandr(mdplearner)
         else
             push!(trans_probs, mdplearner.mdp.trans_probs[mdplearner.policy[state], state])
         end
-        reward[state] = mdplearner.mdp.reward[mdplearner.policy[state], state]
+        # --- It used to be like this
+        # reward[state] = mdplearner.mdp.reward[mdplearner.policy[state], state]
+        # --- To work it shoul now be like this:
+        reward[state] = mdplearner.mdp.reward.value[mdplearner.policy[state], state]
+        # --- The following should now work for DeterministicNextStateReward and DeterministicStateActionReward
+        # --- if one can import the function reward() from ReinforcementLearningEnvironmentDiscrete
+        # reward_immediate[state] = reward(mdplearner.mdp.reward, state, mdplearner.policy[state], state)
+        # reward(r::DeterministicNextStateReward, s, a, s′)
     end
-    hcat(trans_probs...), reward
+    hcat(trans_probs...), reward_immediate
 end
 
 function get_values_given_policy!(mdplearner::MDPLearner)
@@ -96,8 +103,10 @@ function get_Q_values(mdplearner::MDPLearner)
 end
 
 function get_value(reward, trans_probs, γ)
-    return (sparse(Matrix(1.0I, length(reward), length(reward))) - 
+    return (sparse(Matrix(1.0I, length(reward), length(reward))) -
             γ * transpose(trans_probs)) \ reward
 end
 
-update!(::MDPLearner) = Nothing
+# update!(::MDPLearner) = Nothing
+update!(::MDPLearner) = nothing
+update!(::MDPLearner, buffer) = nothing

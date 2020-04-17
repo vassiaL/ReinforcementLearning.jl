@@ -80,6 +80,11 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     elseif Testimatetype == TLeakyIntegratorJump
         Testimate = TLeakyIntegratorJump(ns = ns, na = na, etaleak = etaleak)
         M = M > etaleak ? etaleak : M
+    elseif Testimatetype == TLeakyIntegratorPrior
+        Testimate = TLeakyIntegratorPrior(ns = ns, na = na, etaleak = etaleak,
+                                    etaleakbckground = etaleakbckground,
+                                    stochasticity = stochasticity)
+        M = M > etaleak ? etaleak : M
     end
 
     if Restimatetype == RIntegratorStateActionReward
