@@ -14,6 +14,7 @@
         # @show s0
         s = preprocessstate(preprocessor, s0)
         # @show s
+        # @show r
     end
     if fillbuffer; pushstate!(buffer, s) end
     a = policy(s)
@@ -52,6 +53,7 @@ function learn!(rlsetup)
     # @show a
     # t = 0
     # tplot = 0
+    # rsum = 0
     # start = time()
     # plotenv(rlsetup.environment)
     # fig = figure(); ax = gca()
@@ -61,21 +63,33 @@ function learn!(rlsetup)
         # tplot+=1
         # @show t
         sraw, a, r, done = step!(rlsetup, a)
+        # @show sraw, a, r, done
+        # rsum+=r
+        # plotenv(rlsetup.environment)
         if rlsetup.islearning; update!(learner, buffer); end
         for callback in rlsetup.callbacks
             callback!(callback, rlsetup, sraw, a, r, done)
         end
-        # plotenv(rlsetup.environment)
         # if t == 100
         #      elapsedtime = time() - start
         #      @show elapsedtime
         #      t = 0
         #      start = time()
         # end
-        # if tplot == 100
-        #     v = nonstationaryrl.plotvalues(rlsetup, ax, sizeofmaze=(13,13))
-        #     sleep(0.01)
-        #      tplot = 0
+        # if tplot == 500
+        #     Vvalues = round.(transpose(reshape(rlsetup.learner.V,(13,13))), digits=2)
+        #     @show Vvalues
+        #     @show rlsetup.learner.Q[:, 88]
+        #     #   v = nonstationaryrl.plotvalues(rlsetup, ax, sizeofmaze=(13,13))
+        #     # sleep(0.01)
+        #     @show t
+        #     # @show sraw, a, r, done
+        #     @show rsum
+        #       tplot = 0
+        #  end
+        # if t>=5*10^4
+        #     @show t
+        #     @show sraw, a, r, done
         # end
         if isbreak!(rlsetup.stoppingcriterion, sraw, a, r, done); break; end
     end

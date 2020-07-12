@@ -44,6 +44,7 @@ function updatet!(learnerT::TParticleFilter, s0, a0, s1, done)
     Neff = 1. /sum(learnerT.weights[a0, s0, :] .^2)
     if Neff <= learnerT.Neffthrs; resample!(learnerT, s0, a0); end
     updatecounts!(learnerT, s0, a0, s1)
+    # computeterminalPs1a0s0!(learnerT, s1, done) # 22.05 : Test. Put it here
     computePs1a0s0!(learnerT, s0, a0)
     computeterminalPs1a0s0!(learnerT, s1, done)
     leakothers!(learnerT, s0, a0)
@@ -62,6 +63,7 @@ function getweights!(learnerT::Union{TParticleFilter,TParticleFilterJump}, s0, a
     for i in 1:learnerT.nparticles #firstratio = B(s + a(h_t-1)') / B(s + a(h_t-1)). secondratio = B(s + a(h_t=h_t-1 + 1)) / B(s)
         particleweightupdate = (1. - learnerT.changeprobability) * stayterms[i]
         particleweightupdate += learnerT.changeprobability * switchterm
+        # @show particleweightupdate
         learnerT.weights[a0, s0, i] *= particleweightupdate
     end
     # if any(isnan.(learnerT.weights[a0, s0, :]))
@@ -121,7 +123,7 @@ function computePs1a0s0!(learnerT::Union{TParticleFilter,TParticleFilterJump}, s
     expectedvaluethetas = sum(thetasweighted, dims = 1)
     for s in 1:learnerT.ns
         learnerT.Ps1a0s0[s][(a0, s0)] = copy(expectedvaluethetas[s])
-        #@show learnerT.Ps1a0s0[s][(a0, s0)]
+        # @show learnerT.Ps1a0s0[s][(a0, s0)]
     end
 end
 function leakothers!(learnerT::TParticleFilter, s0, a0)
@@ -136,6 +138,7 @@ function leakothers!(learnerT::TParticleFilter, s0, a0)
                     r = rand(learnerT.rng) # Draw and possibly update
                     if r < learnerT.changeprobability
                         # println("Yes!")
+                        # @show sa
                         learnerT.counts[sa[1], sa[2], i] = zeros(learnerT.ns)
                     end
                     # @show learnerT.counts[sa[1], sa[2], i]
@@ -145,7 +148,7 @@ function leakothers!(learnerT::TParticleFilter, s0, a0)
                 computePs1a0s0!(learnerT, sa[2], sa[1])
             end
         end
-        # @show [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
+        # @show sa, [learnerT.Ps1a0s0[s][sa[1], sa[2]] for s in 1:learnerT.ns]
     end
 end
 function computeterminalPs1a0s0!(learnerT::TPs1a0s0, s1, done)

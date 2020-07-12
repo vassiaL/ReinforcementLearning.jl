@@ -41,7 +41,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
 end
 function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     initvalue = initvalueR / (1. - γ),#initvalue = Inf64, #initvalue = 1. / (1. - γ), # initvalue = 0.
-    maxcount = 3, #3
+    maxcount = 20, #3
     minpriority = 1e-8, M = 1., counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
@@ -114,7 +114,7 @@ end
 export defaultpolicy
 function addtoqueue!(q, s, p)
     if haskey(q, s)
-        # if q[s] > p; q[s] = p; end
+        # if q[s] > p; q[s] = p; end # It used to be like this. Wrong. Discusse with Johanni. Fixed in 18 September 2019.
         q[s] = p
     else
         enqueue!(q, s, p)

@@ -2,6 +2,11 @@
 TLeakyIntegrator with prior information for the calculation of the Ps1a0s0
 To be used alone as passive learners with random policy
 or as Testimate parameter of SmallBackups
+    - etaleak for current (s,a) pair
+    - etaleakbckground for all not currently visited (s,a) pairs in the background
+        Default value  = etaleak
+        - Info about the (prior) stochasticity of the environment in the calculation
+        of the Ps1a0s0
 """
 struct TLeakyIntegratorPrior <: TPs1a0s0
     ns::Int
@@ -26,30 +31,44 @@ function TLeakyIntegratorPrior(; ns = 10, na = 4, etaleak = .9,
                             Nsa, Ns1a0s0, Ps1a0s0, Int[])
 end
 export TLeakyIntegratorPrior
-""" X[t] = etaleak * X[t-1] + etaleak * I[.] """
-function updatet!(learnerT::TLeakyIntegratorPrior, s0, a0, s1, done)
+""" X[t] = etaleak * X[t-1] + I[.] """
+function updatet!(learnerT::Union{TLeakyIntegratorPrior,
+                    TLeakyIntegrator}, s0, a0, s1, done)
     leaka0s0!(learnerT, s0, a0, s1, done)
     computeterminalNs1a0s0!(learnerT, s1, done)
     computePs1a0s0!(learnerT, s0, a0)
     leakothers!(learnerT, s0, a0)
+    # @show [learnerT.Ps1a0s0[s][a0, s0] for s in 1:learnerT.ns]
 end
-function leaka0s0!(learnerT::TLeakyIntegratorPrior,
+function leaka0s0!(learnerT::Union{TLeakyIntegratorPrior,
+                    TLeakyIntegrator},
                     s0, a0, s1, done)
     learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
-    learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
-    # @show a0, s0, learnerT.Nsa[a0, s0]
+    # ---- Add etaleak
+    # learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
+    # ---- Add 1
+    learnerT.Nsa[a0, s0] += 1. # Increase observed transition
+
+    # @show a0, s0, s1, done learnerT.Nsa[a0, s0]
     nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s],(a0,s0))]
     for sprime in nextstates
         learnerT.Ns1a0s0[sprime][(a0, s0)] *= learnerT.etaleak # Discount all outgoing transitions
     end
     if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
-        learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
+        # ---- Add etaleak
+        # learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
+        # ---- Add 1
+        learnerT.Ns1a0s0[s1][(a0, s0)] += 1. # Increase observed
     else
-        learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
+        # ---- Put etaleak
+        # learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
+        # ---- Put 1
+        learnerT.Ns1a0s0[s1][(a0, s0)] = 1.
     end
-    # @show a0, s0, s1, learnerT.Ns1a0s0[s1][(a0, s0)]
+    # @show [learnerT.Ns1a0s0[s][sa] for s in nextstates]@show [learnerT.Ns1a0s0[s][a0, s0] for s in nextstates]
 end
 function leakothers!(learnerT::TLeakyIntegratorPrior, s0, a0)
+
     pairs = getactionstatepairs!(learnerT, s0, a0)
     for sa in pairs # sa[1] = action, sa[2] = state
         # @show sa
@@ -63,11 +82,13 @@ function leakothers!(learnerT::TLeakyIntegratorPrior, s0, a0)
                     # @show sprime, learnerT.Ns1a0s0[sprime][sa]
                 end
                 computePs1a0s0!(learnerT, sa[2], sa[1])
+                # @show [learnerT.Ns1a0s0[s][sa] for s in nextstates]
+                # @show [learnerT.Ps1a0s0[s][sa] for s in nextstates]
             end
         end
     end
 end
-function computeterminalNs1a0s0!(learnerT::TLeakyIntegratorPrior,
+function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegratorPrior,TLeakyIntegrator},
                                 s1, done)
     if done
         if !in(s1, learnerT.terminalstates)

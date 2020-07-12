@@ -25,3 +25,45 @@ function updatet!(learnerT::Union{TLeakyIntegratorNoBackLeak, TLeakyIntegratorJu
     leaka0s0!(learnerT, s0, a0, s1, done)
     computeterminalNs1a0s0!(learnerT, s1, done)
 end
+function leaka0s0!(learnerT::Union{TLeakyIntegratorNoBackLeak,
+                    TLeakyIntegratorJump},
+                    s0, a0, s1, done)
+    learnerT.Nsa[a0, s0] *= learnerT.etaleak # Discount transition
+    learnerT.Nsa[a0, s0] += learnerT.etaleak # Increase observed transition
+    learnerT.Nsa[a0, s0] += (1. - learnerT.etaleak) * learnerT.ns * learnerT.lowerbound # Bound it
+    # @show a0, s0, s1, done learnerT.Nsa[a0, s0]
+    nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s],(a0,s0))]
+    for sprime in nextstates
+        learnerT.Ns1a0s0[sprime][(a0, s0)] *= learnerT.etaleak # Discount all outgoing transitions
+        learnerT.Ns1a0s0[sprime][(a0, s0)] += (1. - learnerT.etaleak) * learnerT.lowerbound # Bound it
+    end
+    if haskey(learnerT.Ns1a0s0[s1], (a0, s0))
+        learnerT.Ns1a0s0[s1][(a0, s0)] += learnerT.etaleak # Increase observed
+    else
+        # println("i m here")
+        learnerT.Ns1a0s0[s1][(a0, s0)] = learnerT.etaleak
+        learnerT.Ns1a0s0[s1][(a0, s0)] += (1. - learnerT.etaleak) * learnerT.lowerbound # Bound it
+    end
+    # @show [learnerT.Ns1a0s0[s][a0, s0] for s in nextstates]
+end
+function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegratorNoBackLeak,
+                                TLeakyIntegratorJump},
+                                s1, done)
+    if done
+        if !in(s1, learnerT.terminalstates)
+            push!(learnerT.terminalstates, s1)
+            for a in 1:learnerT.na
+                for s in 1:learnerT.ns
+                    if s == s1
+                        learnerT.Nsa[a, s1] = 1.
+                        learnerT.Ns1a0s0[s][(a, s1)] = 1.
+                    else
+                        learnerT.Ns1a0s0[s][(a, s1)] = 0.
+                    end
+                end
+                # @show a, s1
+                # @show [learnerT.Ns1a0s0[snext][(a, s1)]/learnerT.Nsa[a, s1] for snext in 1:learnerT.ns]
+            end
+        end
+    end
+end
