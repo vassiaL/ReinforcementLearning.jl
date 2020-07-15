@@ -38,7 +38,7 @@ function leakothers!(learnerT::TLeakyIntegrator, s0, a0)
         # @show sa
         if !in(sa[2], learnerT.terminalstates) # Dont leak outgoing transitions of terminal states
             if learnerT.Nsa[sa[1], sa[2]] != 0. # Doesn't make sense to leak if it is already 0
-                if !isinf(1. / learnerT.Nsa[sa[1], sa[2]]) # If it becomes too low, stop leaking to avoid numerical errors
+                if !isinf(1. / (learnerT.Nsa[sa[1], sa[2]] * learnerT.etaleakbckground)) # If it becomes too low, stop leaking to avoid numerical errors
                     learnerT.Nsa[sa[1], sa[2]] *= learnerT.etaleakbckground
                     # @show sa, learnerT.Nsa[sa[1], sa[2]]
                     nextstates = [s for s in 1:learnerT.ns if haskey(learnerT.Ns1a0s0[s], sa)]
@@ -100,4 +100,3 @@ export updatet!
 # #        # @show learnerT.Ps1a0s0[s][(a0, s0)]
 # #    end
 # # end
-export updatet!

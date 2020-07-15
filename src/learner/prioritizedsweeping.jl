@@ -41,7 +41,7 @@ mutable struct SmallBackups{TREstimate,TTEstimate}
 end
 function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     initvalue = initvalueR / (1. - γ),#initvalue = Inf64, #initvalue = 1. / (1. - γ), # initvalue = 0.
-    maxcount = 20, #3
+    maxcount = 100, #40, #20, #3
     minpriority = 1e-8, M = 1., counter = 0,
     Q = zeros(na, ns) .+ initvalue, V = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
     U = zeros(ns) .+ (initvalue == Inf64 ? 0. : initvalue),
@@ -102,7 +102,7 @@ function SmallBackups(; ns = 10, na = 4, γ = .9, initvalueR = 1.,
     # elseif Restimatetype == RParticleFilter
     #     Restimate = RParticleFilter(ns = ns, na = na, nparticles = nparticles)
     end
-
+    # @show maxcount
     SmallBackups(ns, na, γ, initvalueR, initvalue, maxcount, minpriority, M, counter,
                 Q, V, U, Restimate, Testimate, queue)
 end
@@ -306,6 +306,11 @@ function update!(learner::SmallBackups, buffer)
     #     end
     #     @show learner.Testimate.Nsa[a0, s0]
     # end
+    # for s in 1:learner.ns
+    #     @show learner.Testimate.Ps1a0s0[s][(a0, s0)]
+    #     @show learner.Testimate.Ns1a0s0[s][(a0, s0)]
+    #     @show learner.Testimate.Nsa[a0, s0]
+    # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     updater!(learner.Restimate, s0, a0, sprime, r)
     # # %%%%%%%%%%%%%% Printing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -346,5 +351,6 @@ function update!(learner::SmallBackups, buffer)
     #        @show learner.Q[:, s]
     # end
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # @show learner.Q[:, s0]
 end
 export update!

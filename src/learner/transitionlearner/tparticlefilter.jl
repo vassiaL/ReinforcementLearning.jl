@@ -157,11 +157,18 @@ function computeterminalPs1a0s0!(learnerT::TPs1a0s0, s1, done)
             push!(learnerT.terminalstates, s1)
             for a in 1:learnerT.na
                 for s in 1:learnerT.ns
-                    if s == s1
-                        learnerT.Ps1a0s0[s][(a, s1)] = 1.
-                    else
-                        learnerT.Ps1a0s0[s][(a, s1)] = 0.
-                    end
+                    # ------------------
+                    # --- Absorbing goal
+                    # ------------------
+                    # if s == s1
+                    #     learnerT.Ps1a0s0[s][(a, s1)] = 1.
+                    # else
+                    #     learnerT.Ps1a0s0[s][(a, s1)] = 0.
+                    # end
+                    # ------------------
+                    # --- Uniform goal
+                    # ------------------
+                    learnerT.Ps1a0s0[s][(a, s1)] = 1. / learnerT.ns
                     #@show a, s1, s, learnerT.Ps1a0s0[s][(a, s1)]
                 end
             end

@@ -38,6 +38,8 @@ function updatet!(learnerT::Union{TLeakyIntegratorPrior,
     computeterminalNs1a0s0!(learnerT, s1, done)
     computePs1a0s0!(learnerT, s0, a0)
     leakothers!(learnerT, s0, a0)
+    # @show s0, a0
+    # @show [learnerT.Ns1a0s0[s][a0, s0] for s in 1:learnerT.ns]
     # @show [learnerT.Ps1a0s0[s][a0, s0] for s in 1:learnerT.ns]
 end
 function leaka0s0!(learnerT::Union{TLeakyIntegratorPrior,
@@ -93,16 +95,26 @@ function computeterminalNs1a0s0!(learnerT::Union{TLeakyIntegratorPrior,TLeakyInt
     if done
         if !in(s1, learnerT.terminalstates)
             push!(learnerT.terminalstates, s1)
+
             for a in 1:learnerT.na
                 for s in 1:learnerT.ns
-                    if s == s1
-                        learnerT.Nsa[a, s1] = 1.
-                        learnerT.Ns1a0s0[s][(a, s1)] = 1.
-                        learnerT.Ps1a0s0[s][(a, s1)] = 1.
-                    else
-                        learnerT.Ns1a0s0[s][(a, s1)] = 0.
-                        learnerT.Ps1a0s0[s][(a, s1)] = 0.
-                    end
+                    # ------------------
+                    # --- Absorbing goal
+                    # ------------------
+                    # if s == s1
+                    #     learnerT.Nsa[a, s1] = 1.
+                    #     learnerT.Ns1a0s0[s][(a, s1)] = 1.
+                    #     learnerT.Ps1a0s0[s][(a, s1)] = 1.
+                    # else
+                    #     learnerT.Ns1a0s0[s][(a, s1)] = 0.
+                    #     learnerT.Ps1a0s0[s][(a, s1)] = 0.
+                    # end
+                    # ------------------
+                    # --- Uniform goal
+                    # ------------------
+                    learnerT.Nsa[a, s1] = 1.
+                    learnerT.Ns1a0s0[s][(a, s1)] = 1.
+                    learnerT.Ps1a0s0[s][(a, s1)] = 1. / learnerT.ns
                     # @show a, s1, s, learnerT.Ns1a0s0[s][(a, s1)]
                 end
                 # @show a, s1
@@ -118,7 +130,6 @@ function computePs1a0s0!(learnerT::TLeakyIntegratorPrior, s0, a0)
     # @show [learnerT.Ns1a0s0[s][a0, s0] for s in nextstates]
     # @show denominator
    for s in 1:learnerT.ns
-       # learnerT.Ps1a0s0[s][(a0, s0)] = learnerT.Ns1a0s0[s][(a0, s0)] / learnerT.Nsa[a0, s0]
        learnerT.Ps1a0s0[s][(a0, s0)] = (learnerT.stochasticity + learnerT.Ns1a0s0[s][(a0, s0)])
        learnerT.Ps1a0s0[s][(a0, s0)] /= denominator
        # @show s, learnerT.Ps1a0s0[s][(a0, s0)]
